@@ -4,10 +4,12 @@ import numpy as np
 # General class for low-pass and high-pass filtering.
 class Filter:
     # Low-pass filter non-convoluted (whatever that means).
+    # sampleRate is the number of samples per second measured in kHz.
+    # sampleNumber is simply the number of samples.
     @staticmethod
-    def __lowPassFilterNonConvoluted(sampleRate):
-        fc = sampleRate / 10
-        b = 0.08
+    def __lowPassFilterNonConvoluted(sampleRate, sampleNumber):
+        fc = 1 / sampleRate
+        b = 4 / sampleNumber    # Approx. 4 / N.
         N = int(np.ceil(4 / b))
         if not N % 2: N += 1
         n = np.arange(N)
@@ -18,8 +20,8 @@ class Filter:
 
     # High-pass filter.
     @staticmethod
-    def highPassFilter(signal, sampleRate):
-        nonConvoluted = Filter.__lowPassFilterNonConvoluted(sampleRate)
+    def highPassFilter(signal, sampleRate, sampleNumber = 50):
+        nonConvoluted = Filter.__lowPassFilterNonConvoluted(sampleRate, sampleNumber)
         h = nonConvoluted[0]
         N = nonConvoluted[1]
         h = -h
@@ -28,6 +30,6 @@ class Filter:
 
     # Low-pass filter.
     @staticmethod
-    def lowPassFilter(signal, sampleRate):
-        nonConvoluted = Filter.__lowPassFilterNonConvoluted(sampleRate)[0]
+    def lowPassFilter(signal, sampleRate, sampleNumber = 50):
+        nonConvoluted = Filter.__lowPassFilterNonConvoluted(sampleRate, sampleNumber)[0]
         return np.convolve(signal, nonConvoluted)
