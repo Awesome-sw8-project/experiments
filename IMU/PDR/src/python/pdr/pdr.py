@@ -1,4 +1,9 @@
 import math
+import filter
+import time
+import threading
+import numpy as np
+import util
 
 class Location:
     def __init__(self, x, y):
@@ -20,16 +25,17 @@ class BasePDR:
         self.alpha = 0.9
         self.windowSize = 10
         self.gravityFactors = []
-        self.lpf = []
-        self.hpf = []
+        self.filteredValues = []
+        self.sampleTimestamps = []
+        self.sampleCount = 0
 
     # Getter to initial position.
     def getStartLocation(self):
         return self.start
 
     # Getter to current position.
-    def getCurrentLocation(self, acceleratorData, magnometerData):
-        __nextPosition()
+    def getCurrentLocation(self, acceleratorData, magnometerData, gyroscopeData):
+        __nextPosition(acceleratorData, magnometerData, gyroscopeData)
         return self.current
 
     # Polymorphic heading estimation.
@@ -38,12 +44,25 @@ class BasePDR:
 
     # Computes next position.
     def __nextPosition(self, acceleratorData, magnometerData, gyroscopeData):
+        self.sampleTimestamps.append(time.clock_gettime_ns(time.pthread_getcpuclockid(threading.get_ident())))
+        self.sampleCount += 1
         heading = heading(acceleratorData, magnometerData)
-        stepLength = __stepLength()
+        stepLength = __stepLength(__avgSampleRate, acceleratorData)
         heading = heading(acceleratorData, magnometerData)
         x = self.current.getX() + stepLength * math.cos(heading)
         y = self.current.getY() + stepLength * math.sin(heading)
         self.current = Location(x, y)
+
+    # Computes average sample rate in kHz.
+    def __avgSampleRate(self):
+        times = []
+        i = 1
+
+        while i < len(self.sampleTimestamps):
+            times.append(self.sampleTimestamps[i] - self.sampleTimestamps[i - 1])
+            i += 1
+
+        return np.sum(np.array(times)) / len(times)
 
     # Computes acceleration norm.
     def __acceleration_norm(self, x, y, z):
@@ -51,28 +70,20 @@ class BasePDR:
 
     # Computes gravity factor used in high-pass filtering to be removed from acceleration.
     def __gravityFactor(self, accelerationX, accelerationY, accelerationZ):
-        self.currentGravity = self.alpha * self.currentGravity + (1 - self.alpha) * __accelerationNorm(accelerationX, accelerationY, accelerationZ)
+        self.currentGravity = self.alpha * self.currentGravity +
+                                (1 - self.alpha) * __accelerationNorm(accelerationX, accelerationY, accelerationZ)
         self.gravityFactors.append(self.currentGravity)
         return self.currentGravity
 
-    # High-pass filter.
-    def __hpFilter(self, accelerationX, accelerationY, accelerationZ):
-        filtering = __accelerationNorm(accelerationX, accelerationY, accelerationZ) - __gravityFactor(accelerationX, accelerationY, accelerationZ)
-        self.hpf.append(filtering)
-        return filtering
-
-    # TODO: Paper describes this step poorly:
-    # TODO: https://ieeexplore-ieee-org.zorac.aub.aau.dk/document/8250048
-    # TODO: We try only storing a single low-pass filter value.
-    # Low-pass filter.
-    def __lpFilter(self, accelerationX, accelerationY, accelerationZ):
-        filtering = __hpFilter(accelerationX, accelerationY, accelerationZ)
-        self.lpf.append(filtering)
-        return filtering
-
+    # TODO: Next -> step detection.
+    # TODO: Consider trying without using filters. Just feed peak detection with raw acceleration data.
     # Step-length estimation.
-    def __stepLength(self):
-        pass
+    def __stepLength(self, sampleRate, acceleratorData):
+        accelerationNorm = __acceleration_norm(acceleratorData[0], acceleratorData[1], acceleratorData[2])
+        highPass = filter.Filter.highPassFilter(accelerationNorm, sampleRate, self.sampleCount)
+        lowPass = filter.Filter.lowPassFilter(accelerationNorm, sampleRate, self.sampleCount)
+        filterCombineRectangular = util.rectangular(np.convolve(highPass, lowPass))
+        self.filteredValues.append(filterCombineRectangular))
 
 # Class for heading estimation using AHRS.
 class AHRSPDR(BasePDR):
