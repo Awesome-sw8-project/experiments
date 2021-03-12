@@ -2,9 +2,50 @@ import numpy as np
 import scipy.signal as signal
 
 class Step:
-    # Detects step and returns min and max acceleration.
+    # Peak detection for step detection for provided windows in acc_data..
+    # Parameter acc_data contains lists of 4 element: 1st is timestamp, the remaining are accelerator axes.
+    def peak_detection(acc_data, threshold, lag = 1, influence = 0.5):
+        y = Step.__acc_data2z_axis(acc_data)
+        signals = np.zeros(len(y))
+        filteredY = np.array(y)
+        avgFilter = [0]*len(y)
+        stdFilter = [0]*len(y)
+        avgFilter[lag - 1] = np.mean(y[0:lag])
+        stdFilter[lag - 1] = np.std(y[0:lag])
+        for i in range(lag, len(y)):
+            if abs(y[i] - avgFilter[i-1]) > threshold * stdFilter [i-1]:
+                if y[i] > avgFilter[i-1]:
+                     signals[i] = 1
+                else:
+                     signals[i] = -1
+
+                filteredY[i] = influence * y[i] + (1 - influence) * filteredY[i-1]
+                avgFilter[i] = np.mean(filteredY[(i-lag+1):i+1])
+                stdFilter[i] = np.std(filteredY[(i-lag+1):i+1])
+            else:
+                signals[i] = 0
+                filteredY[i] = y[i]
+                avgFilter[i] = np.mean(filteredY[(i-lag+1):i+1])
+                stdFilter[i] = np.std(filteredY[(i-lag+1):i+1])
+
+        return dict(signals = np.asarray(signals),
+                    avgFilter = np.asarray(avgFilter),
+                    stdFilter = np.asarray(stdFilter))
+
+    # List of acceleration data to list of Z-axis acceleration data.
     @staticmethod
-    def detect(acce_datas):
+    def __acc_data2z_axis(acc_data):
+        a_axis_data = []
+
+        for data in acc_data:
+            a_axis_data.append(data[3])
+
+        return a_axis_data
+
+    # Step detection provided by Kaggle>
+    # https://github.com/location-competition/indoor-location-competition-20/blob/master/compute_f.py#L210
+    @staticmethod
+    def kaggle_detect(acce_datas):
         step_timestamps = np.array([])
         step_indexs = np.array([], dtype=int)
         step_acce_max_mins = np.zeros((0, 4))

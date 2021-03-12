@@ -22,10 +22,11 @@ class BasePDR:
     def __init__(self, startLocation):
         self.start = startLocation
         self.current = startLocation
+        self.k = 0.51
         self.sampleTimestamps = []
         self.sampleCount = 0
         self.accData = []
-        self.lastStepTimestamp = 0
+        self.signals = []
 
     # Getter to initial position.
     def getStartLocation(self):
@@ -44,8 +45,7 @@ class BasePDR:
     def __nextPosition(self, timestamp, acceleratorData, magnometerData, gyroscopeData):
         self.sampleTimestamps.append(time.clock_gettime_ns(time.pthread_getcpuclockid(threading.get_ident())))
         self.sampleCount += 1
-        acceleratorData.insert(0, timestamp)
-        self.accData.append(acceleratorData)
+        self.accData.append([timestamp, acceleratorData[0], acceleratorData[1], acceleratorData[2]])
 
         stepLength = self.__stepLength(timestamp)
         heading = self.heading(acceleratorData, magnometerData)
@@ -64,23 +64,29 @@ class BasePDR:
 
         return np.sum(np.array(times)) / len(times)
 
+    # TODO: Find threshold for step detection.
     # Step-length estimation.
     def __stepLength(self, timestamp):
-        stepTimestamps, stepIndices, stepAcceMaxMins = \
-            step.Step.detect(self.accData)
+        peak_detection = step.Step.peak_detection(self.accData, 10)
+        avg_filter = peak_detection['avgFilter']
+        window = self.__step_window(peak_detection['signals'])
 
-        if (stepTimestamps[len(stepTimestamps) - 1] == self.lastStepTimestamp):
+        if window == None:
             return 0
 
-        self.lastStepTimestamps.append(stepTimestamps[len(stepTimestamps) - 1])
-        maxStep = stepAcceMaxMins[len(stepAcceMaxMins) - 1][1]
-        minStep = stepAcceMaxMins[len(stepAcceMaxMins) - 1][2]
-        return self.k * math.pow(maxStep - minStep, 1 / 4)   # Weinberg.
+        avg_filter_cut = avg_filter     # Temporary
+        return self.k * math.pow(np.max(avg_filter_cut) - np.amin(avg_filter_cut), 1 / 4)   # Weinberg.
+
+    # TODO: Finish this.
+    # TODO: A window must start with the first 1 in a step and end with the last -1 in the same step.
+    # Computes single signal window indices. If step is not complete, return None.
+    def __step_window(self, signals):
+        return 0
 
 # Class for heading estimation using AHRS.
 class AHRSPDR(BasePDR):
-    def __init__(self):
-        pass
+    def __init__(self, initial_location):
+        super().__init__(initial_location)
 
     def heading(self, acceleratorData, magnometerData):
-        pass
+        return 0.5
