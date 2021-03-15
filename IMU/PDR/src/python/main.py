@@ -1,6 +1,6 @@
 from pdr.pdr import BasePDR, AHRSPDR, Location
 
-pdr = AHRSPDR(Location(208.86206, 216.74796))
+pdr = AHRSPDR(Location(208.86206, 216.74796), True)
 loc1 = pdr.get_current_location(1574572522655, [1.0, 2.0, 5.4494324], [4.5, 5.3, 2.1], [0.4945526, 0.122528076, 0.25663757])
 loc2 = pdr.get_current_location(1574572522675, [1.0, 2.0, 5.6469574], [4.5, 5.3, 2.1], [0.10040283, 0.087371826, 0.27635193])
 loc3 = pdr.get_current_location(1574572522696, [1.0, 2.0, 6.6172028], [4.5, 5.3, 2.1], [-0.28788757, 0.07672119, 0.31736755])

@@ -5,7 +5,7 @@ import numpy as np
 from pdr import filter
 from pdr import util
 from pdr import step
-from ahrs.filters import Madgwick
+from ahrs.filters import Madgwick, Mahony
 from ahrs.common import Quaternion
 
 class Location:
@@ -113,13 +113,27 @@ class BasePDR:
 
 # Class for heading estimation using AHRS.
 class AHRSPDR(BasePDR):
-    def __init__(self, initial_location):
+    def __init__(self, initial_location, use_madgwick):
         super().__init__(initial_location)
+        self.use_madgwick = use_madgwick
 
     # Madgwick heading estimation. Units are in meters, not centimeters.
     def heading(self, accelerator_data, gyroscope_data, magnometer_data):
-        madgwick = Madgwick(gyr = np.array(gyroscope_data), acc = np.array(accelerator_data), frequency = self._sample_rate())
-        quaternion = Quaternion(madgwick.Q[-1])
+        orientation = None
+
+        if self.use_madgwick:
+            orientation = Madgwick(gyr = np.array(gyroscope_data), acc = np.array(accelerator_data), frequency = self._sample_rate())
+
+        else:
+            orientation = Mahony(gyr = np.array(gyroscope_data), acc = np.array(accelerator_data), frequency = self._sample_rate())
+
+        quaternion = Quaternion(orientation.Q[-1])
+        return quaternion.to_axang()[1]
+
+    # Heading estimation by Mahony.
+    def mahony_heading(self, accelerator_data, gyroscope_data, magnometer_data):
+        mahony = Mahony(gyr = np.array(gyroscope_data), acc = np.array(accelerator_data), frequency = self._sample_rate())
+        quaternion = Quaternion(mahony.Q[-1])
         return quaternion.to_axang()[1]
 
     # Computes sample rate.
