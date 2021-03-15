@@ -7,9 +7,9 @@ class Filter:
     # sampleRate is the number of samples per second measured in kHz.
     # sampleNumber is simply the number of samples.
     @staticmethod
-    def __lowPassFilterNonConvoluted(sampleRate, sampleNumber):
-        fc = 1 / sampleRate
-        b = 4 / sampleNumber    # Approx. 4 / N.
+    def __lowpassfilter_nonconvoluted(sample_rate, sample_number):
+        fc = 1 / sample_rate
+        b = 4 / sample_number    # Approx. 4 / N.
         N = int(np.ceil(4 / b))
         if not N % 2: N += 1
         n = np.arange(N)
@@ -20,16 +20,16 @@ class Filter:
 
     # High-pass filter.
     @staticmethod
-    def highPassFilter(signal, sampleRate, sampleNumber = 50):
-        nonConvoluted = Filter.__lowPassFilterNonConvoluted(sampleRate, sampleNumber)
-        h = nonConvoluted[0]
-        N = nonConvoluted[1]
+    def highPassFilter(signal, sample_rate, sample_number = 50):
+        non_convoluted = Filter.__lowpassfilter_nonconvoluted(sample_rate, sample_number)
+        h = non_convoluted[0]
+        N = non_convoluted[1]
         h = -h
         h[(N - 1) // 2] += 1
         return np.convolve(signal, h)
 
     # Low-pass filter.
     @staticmethod
-    def lowPassFilter(signal, sampleRate, sampleNumber = 50):
-        nonConvoluted = Filter.__lowPassFilterNonConvoluted(sampleRate, sampleNumber)[0]
-        return np.convolve(signal, nonConvoluted)
+    def lowPassFilter(signal, sample_rate, sample_number = 50):
+        non_convoluted = Filter.__lowpassfilter_nonconvoluted(sample_rate, sample_number)[0]
+        return np.convolve(signal, non_convoluted)

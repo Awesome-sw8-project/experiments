@@ -13,73 +13,77 @@ class Location:
         self.x = x
         self.y = y
 
-    def getX(self):
+    def get_x(self):
         return self.x
 
-    def getY(self):
+    def get_y(self):
         return self.y
 
 # Base class for PDR estimation with unspecified heading estimation.
 class BasePDR:
-    def __init__(self, startLocation):
-        self.start = startLocation
-        self.current = startLocation
+    def __init__(self, start_location):
+        self.start = start_location
+        self.current = start_location
         self.k = 0.51
-        self.sampleTimestamps = []
-        self.sampleCount = 0
-        self.accData = []
+        self.sample_timestamps = []
+        self.sample_count = 0
+        self.acc_data = []
         self.signals = []
-        self.gyroData = []
-        self.magnoData = []
+        self.gyro_data = []
+        self.magno_data = []
+
+    # Getter to timestamps for derived classes.
+    def get_timestamps(self):
+        return self.sample_timestamps
 
     # Getter to initial position.
-    def getStartLocation(self):
+    def get_start_location(self):
         return self.start
 
     # Getter to current position.
-    def getCurrentLocation(self, timestamp, acceleratorData, magnometerData, gyroscopeData):
-        self.__nextPosition(timestamp, acceleratorData, magnometerData, gyroscopeData)
+    def get_current_location(self, timestamp, accelerator_data, magnometer_data, gyroscope_data):
+        self.__next_position(timestamp, accelerator_data, magnometer_data, gyroscope_data)
         return self.current
 
     # Polymorphic heading estimation.
-    def heading(self, acceleratorData, gyroscopeData, magnometerData):
+    def heading(self, accelerator_data, gyroscope_data, magnometer_data):
         pass
 
     # Computes next position.
-    def __nextPosition(self, timestamp, acceleratorData, magnometerData, gyroscopeData):
-        self.sampleTimestamps.append(time.clock_gettime_ns(time.pthread_getcpuclockid(threading.get_ident())))
-        self.sampleCount += 1
-        self.accData.append(acceleratorData)
-        self.gyroData.append(gyroscopeData)
-        self.magnoData.append(magnometerData)
+    def __next_position(self, timestamp, accelerator_data, magnometer_data, gyroscope_data):
+#        self.sampleTimestamps.append(time.clock_gettime_ns(time.pthread_getcpuclockid(threading.get_ident())))
+        self.sample_timestamps.append(timestamp)
+        self.sample_count += 1
+        self.acc_data.append(accelerator_data)
+        self.gyro_data.append(gyroscope_data)
+        self.magno_data.append(magnometer_data)
 
-        heading = self.heading(self.accData, self.gyroData, self.magnoData)
-        stepLength = self.__stepLength(timestamp)
+        heading = self.heading(self.acc_data, self.gyro_data, self.magno_data)
+        step_length = self.__step_length(timestamp)
 
-        if stepLength > 0:
-            self.accData = []
-            self.gyroData = []
-            self.magnoData = []
+        if step_length > 0:
+            self.acc_data = []
+            self.gyro_data = []
+            self.magno_data = []
 
-        x = self.current.getX() + stepLength * math.cos(heading)
-        y = self.current.getY() + stepLength * math.sin(heading)
+        x = self.current.get_x() + step_length * math.cos(heading)
+        y = self.current.get_y() + step_length * math.sin(heading)
         self.current = Location(x, y)
 
     # Computes average sample rate in kHz.
-    def __avgSampleRate(self):
+    def __avg_sample_rate(self):
         times = []
         i = 1
 
-        while i < len(self.sampleTimestamps):
-            times.append(self.sampleTimestamps[i] - self.sampleTimestamps[i - 1])
+        while i < len(self.sample_timestamps):
+            times.append(self.sample_timestamps[i] - self.sample_timestamps[i - 1])
             i += 1
 
         return np.sum(np.array(times)) / len(times)
 
-    # TODO: Find threshold for step detection.
     # Step-length estimation.
-    def __stepLength(self, timestamp):
-        peak_detection = step.Step.peak_detection(self.accData, 10)
+    def __step_length(self, timestamp):
+        peak_detection = step.Step.peak_detection(self.acc_data, 12)
         avg_filter = peak_detection['avgFilter']
         window = self.__step_window(peak_detection['signals'])
 
@@ -89,8 +93,6 @@ class BasePDR:
         avg_filter_cut = avg_filter[window[0]:window[1]]
         return self.k * math.pow(np.max(avg_filter_cut) - np.amin(avg_filter_cut), 1 / 4)   # Weinberg.
 
-    # TODO: Finish this.
-    # TODO: A window must start with the first 1 in a step and end with the last -1 in the same step.
     # Computes single signal window indices. If step is not complete, return None.
     def __step_window(self, signals):
         start = -1
@@ -115,12 +117,15 @@ class AHRSPDR(BasePDR):
         super().__init__(initial_location)
 
     # Madgwick heading estimation. Units are in meters, not centimeters.
-    def heading(self, acceleratorData, gyroscopeData, magnometerData):
-        madgwick = Madgwick(gyr = np.array(gyroscopeData), acc = np.array(acceleratorData), frequency = self._sample_rate())
+    def heading(self, accelerator_data, gyroscope_data, magnometer_data):
+        madgwick = Madgwick(gyr = np.array(gyroscope_data), acc = np.array(accelerator_data), frequency = self._sample_rate())
         quaternion = Quaternion(madgwick.Q[-1])
         return quaternion.to_axang()[1]
 
-    # TODO: Use super().sampleTimestamps.
     # Computes sample rate.
     def _sample_rate(self):
-        return 100
+        if len(BasePDR.get_timestamps(self)) < 2:
+            return 100
+
+        time_period = (BasePDR.get_timestamps(self)[-1] - BasePDR.get_timestamps(self)[0]) / 1000
+        return len(BasePDR.get_timestamps(self)) / time_period
