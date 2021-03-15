@@ -83,7 +83,12 @@ class BasePDR:
 
     # Step-length estimation.
     def __step_length(self, timestamp):
-        peak_detection = step.Step.peak_detection(self.acc_data, 12)
+        lag = 2
+
+        if len(self.acc_data) < lag:
+            return 0
+
+        peak_detection = step.Step.peak_detection(self.acc_data, 5, lag = lag)
         avg_filter = peak_detection['avgFilter']
         window = self.__step_window(peak_detection['signals'])
 
