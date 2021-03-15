@@ -4,6 +4,7 @@ import scipy.signal as signal
 class Step:
     # Peak detection for step detection for provided windows in acc_data..
     # Parameter acc_data contains lists of 4 element: 1st is timestamp, the remaining are accelerator axes.
+    @staticmethod
     def peak_detection(acc_data, threshold, lag = 1, influence = 0.5):
         y = Step.__acc_data2z_axis(acc_data)
         signals = np.zeros(len(y))
@@ -38,7 +39,7 @@ class Step:
         a_axis_data = []
 
         for data in acc_data:
-            a_axis_data.append(data[3])
+            a_axis_data.append(data[2])
 
         return a_axis_data
 
