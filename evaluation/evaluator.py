@@ -20,11 +20,11 @@ class Evaluator:
     # Evaluates each estimated position.
     def __eval_positions(self):
         for i in range(len(self.evaluation_data)):
-            self.pe.append(em.Eval.pe(self.evaluation_data[i], self.ground_truth_data[i]))
+            self.pe.append(em.pe(self.evaluation_data[i], self.ground_truth_data[i]))
 
     # Computes mean positioning error.
     def __mpe(self):
-        self.mpe = em.Eval.mpe(self.evaluation_data, self.ground_truth_data)
+        self.mpe = em.mpe(self.evaluation_data, self.ground_truth_data)
 
     # Getter to mean positioning error.
     def get_mpe(self):
