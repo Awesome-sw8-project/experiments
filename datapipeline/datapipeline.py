@@ -46,6 +46,14 @@ def find_nearest_wp_index(waypoints, time_stamp):
         dists.append(dist)
     return np.argmin(dists)
 
+def lowest_waypoint(waypoints):
+    timestamp = None
+    x = y = None
+    for e,k in enumerate(waypoints):
+        if timestamp == None or int(k[0])<timestamp:
+            timestamp = int(k[0])
+            x,y = float(k[2]), float(k[3])
+    return x,y
 #TODO:maybe make it per file write if cannot hold data in main memmory.
 def wifi_feature_construction(bssids, type):
     wifi_features = list()
@@ -97,21 +105,23 @@ def wifi_feature_construction(bssids, type):
     #np.savetxt('data.csv',np.asarray(wifi_features),delimiter=',', fmt="%s") #this can be used to write the data to files.
     return wifi_features
 
-#generator instead of a list
+#generator/stream instead of a list
 def imu_data():
     #assumes that the data is in a data folder and the file with .txt extension is the dataset. 
     files = [p for p in os.listdir("data") if p.endswith(".txt")]
     
     for file in files:
         imu = list()
+        imu_features = list()
         waypoints = list()
+        
         f = open("data/"+file,"r")
         for line in f:
             if len(line)>0 and line[0] == "#":
                 continue
             split = line.split("\t")
             if len(split)>1 and (split[1] == "TYPE_ACCELEROMETER" or split[1] == "TYPE_MAGNETIC_FIELD" or split[1] == "TYPE_GYROSCOPE"):
-                #maybe with split 3 instead of split 2 depending on what bssid is.
+                #split[0] is timestamp, split[1] is the type, while the rest are x,y,z values.
                 imu.append([split[0], split[1], split[2], split[3], split[4]])
             elif len(split)>1 and split[1] == "TYPE_WAYPOINT":
                 file_waypoints = split[2:]
@@ -120,31 +130,33 @@ def imu_data():
                     waypoints.append([int(wpt_data[0]), float(wpt_data[1]), float(wpt_data[2]), float(wpt_data[3])])
         f.close()
 
-        if not imu == []:
-            df = pd.DataFrame(imu)
-            #typecasting of values to proper type
-            df[0] = df[0].apply(lambda x: int(x))
-            df[4] = df[4].apply(lambda x: float(x[:-1]))
-            df[2] = df[2].apply(lambda x: float(x))
-            df[3] = df[3].apply(lambda x: float(x))
-            
-            #group by timestamp
-            grouped = df.groupby(0)
-            imu_feature = list()
-            for time_stamp, group in grouped:
-                #find nearest waypoint here
-                nearest_wp = find_nearest_wp_index(waypoints,time_stamp)
-                x = float(waypoints[nearest_wp][2])
-                y =float(waypoints[nearest_wp][3])
-                floor = int(waypoints[nearest_wp][1])
-                #group = group.reindex(["TYPE_ACCELEROMETER", "TYPE_MAGNETIC_FIELD", "TYPE_GYROSCOPE"])
-                acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].to_numpy()[0][2:5]
-                mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].to_numpy()[0][2:5]
-                gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].to_numpy()[0][2:5]
-                yield [time_stamp, acc_feat, mag_feat, gyro_feat, [x,y,floor]]
-            del df
+        if imu == []:
+            yield list()
+
+        df = pd.DataFrame(imu)
         del imu
-        gc.collect()
+        #typecasting of values to proper type
+        df[0] = df[0].apply(lambda x: int(x))
+        df[4] = df[4].apply(lambda x: float(x[:-1]))
+        df[2] = df[2].apply(lambda x: float(x))
+        df[3] = df[3].apply(lambda x: float(x))
+            
+        #group by timestamp
+        grouped = df.groupby(0)
+        for time_stamp, group in grouped:
+            #find nearest waypoint here
+            nearest_wp = find_nearest_wp_index(waypoints,time_stamp)
+            start_x, start_y = lowest_waypoint(waypoints)
+                
+            x = float(waypoints[nearest_wp][2])
+            y =float(waypoints[nearest_wp][3])
+            floor = int(waypoints[nearest_wp][1])
+            #group = group.reindex(["TYPE_ACCELEROMETER", "TYPE_MAGNETIC_FIELD", "TYPE_GYROSCOPE"])
+            acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].to_numpy()[0][2:5]
+            mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].to_numpy()[0][2:5]
+            gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].to_numpy()[0][2:5]
+            imu_features.append([time_stamp,[start_x,start_y], acc_feat, mag_feat, gyro_feat, [x,y,floor]])
+        yield imu_features
 
 #this function is only included to show how to access array written to file using np
 def load_np_to_text(filename):
@@ -152,11 +164,12 @@ def load_np_to_text(filename):
 
 if __name__ == "__main__":
     gen = imu_data()
-    print(next(gen))
+    next(gen)
+    
     #calculate_all_bssids(100, "TYPE_WIFI")
     #bssids = get_all_bssids()
     #feat_arr = wifi_feature_construction(bssids, "TYPE_WIFI")
     #print(feat_arr[0][3:6])
-    #print(wifi_feature_construction(bssids))
+    #print(wifi_feature_construction(bssids)
     pass
     
