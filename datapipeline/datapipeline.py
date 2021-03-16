@@ -5,33 +5,28 @@ import numpy as np
 import gc
 from collections import Counter
 
-basepath = ''
-#site_name_path_name
-#TODO:check whether a sample_submission.csv file exist in experiments and refer to that file.
-#subm_file = pd.read_csv('sample_submission.csv')
-#subm_df = subm_file['site_path_timestamp'].apply(lambda x: pd.Series(x.split("_")))
-#sites_for_prediction = sorted(subm_df[0].value_counts().index.tolist())
-bssid_for_prediction = dict()
 
-#finds all bssid value and saves it into a bssids.json file
-def calculate_all_bssids():
-    all_bssids = list()
+#finds all bssid values with an occurence over 'occ' and saves it into a bssids.json file. 
+# Type specifies which type of data is used, can either be TYPE_WIFI or TYPE_IBEACON
+def calculate_all_bssids(occ, type):
+    bssids_list = list()
     files = [p for p in os.listdir("data") if p.endswith(".txt")]
     for file in files:
         f = open("data/"+file, "r")
         for line in f:
+            #omit the metadata in each file
             if line[0] == "#":
                 continue
             split = line.split("\t")
-            if len(split) > 0 and split[1] == "TYPE_WIFI":
-                all_bssids.append(split[3]) #need to find real index.
-        f.close()    
-    bssids_dict = dict(Counter(all_bssids))
-    #if we need to filter the bssid values. this probably needs readjustment
-    bssids_dict = {bssid:occurence for (bssid,occurence) in bssids_dict.items() if occurence > 100}
-    all_bssids = list(bssids_dict)
-    bssids_json = json.dumps(all_bssids)
-    #print(len(all_bssids))
+            if len(split) > 0 and split[1] == type:
+                bssids_list.append(split[3]) #need to find real index.
+        f.close()
+    #creates a dictionary with the key being bssid and value being the occurance of the bssid value in the dataset.    
+    bssids_dict = dict(Counter(bssids_list))
+    #filtering of the bssids which are less than 'occ'
+    bssids_dict = {bssid:occurence for (bssid,occurence) in bssids_dict.items() if occurence > occ}
+    bssids_list = list(bssids_dict)
+    bssids_json = json.dumps(bssids_list)
     f = open("bssids.json", "w")
     f.write(bssids_json)
     f.close()
@@ -43,13 +38,20 @@ def get_all_bssids():
     f.close()
     return lst
 
-#maybe make it per file write if cannot hold data in main memmory.
-def wifi_feature_construction(bssids):
+#finds the index of the temporally nearest waypoint in the waypoints list given a timestamp
+def find_nearest_wp_index(waypoints, time_stamp):
+    dists = list()
+    for e,k in enumerate(waypoints):
+        dist = abs(int(time_stamp)- int(k[0]))
+        dists.append(dist)
+    return np.argmin(dists)
+
+#TODO:maybe make it per file write if cannot hold data in main memmory.
+def wifi_feature_construction(bssids, type):
     wifi_features = list()
-    
-    #assumes that the data is in a data folder. 
+   
+    #assumes that the data is in a data folder and the file with .txt extension is the dataset. 
     files = [p for p in os.listdir("data") if p.endswith(".txt")]
-    #files = [p for p in os.listdir("../data") if p.split('_')[0].startswith(site)]
     wifi = list()
     for file in files:
         waypoints = list()
@@ -58,9 +60,7 @@ def wifi_feature_construction(bssids):
             if len(line)>0 and line[0] == "#":
                 continue
             split = line.split("\t")
-            if(len(split)<=1):
-                print(split)
-            if len(split)>1 and split[1] == "TYPE_WIFI":
+            if len(split)>1 and split[1] == type:
                 #maybe with split 3 instead of split 2 depending on what bssid is.
                 wifi.append([split[0], split[2], split[3], split[4]])
             elif len(split)>1 and split[1] == "TYPE_WAYPOINT":
@@ -78,22 +78,14 @@ def wifi_feature_construction(bssids):
             df[0] = df[0].apply(lambda x: int(x))
             grouped = df.groupby(0)
             for time_stamp, group in grouped:
-                #find true waypoint here
-                dists = list()
-                for e,k in enumerate(waypoints):
-                    dist = abs(int(time_stamp)- int(k[0]))
-                    dists.append(dist)
-                nearest_wp = np.argmin(dists)
-                temp = group.iloc[:,2:4]
-                #temp.drop_duplicates(2, inplace=True) # this might be necessary for dummy data with same bssids
-                feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
-                #TODO: recheck for proper indices
+                #find nearest waypoint here
+                nearest_wp = find_nearest_wp_index(waypoints,time_stamp)
                 x = float(waypoints[nearest_wp][2])
                 y =float(waypoints[nearest_wp][3])
                 floor = int(waypoints[nearest_wp][1])
-                """feat["X"] = 
-                feat["Y"] = 
-                feat["floor"] =""" 
+                temp = group.iloc[:,2:4]
+                #temp.drop_duplicates(2, inplace=True) # this might be necessary for dummy data with same bssids
+                feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
                 #feat.reset_index(drop=True,inplace=True)
                 feat = feat.transpose()
                 feat_arr = feat.to_numpy()
@@ -102,14 +94,69 @@ def wifi_feature_construction(bssids):
             del df
         del wifi
         gc.collect()
+    #np.savetxt('data.csv',np.asarray(wifi_features),delimiter=',', fmt="%s") #this can be used to write the data to files.
     return wifi_features
 
-#calculate_all_bssids()
-bssids = get_all_bssids()
-print(wifi_feature_construction(bssids))
-#print(wifi_feature_construction(sites_for_prediction,bssids))
+#generator instead of a list
+def imu_data():
+    #assumes that the data is in a data folder and the file with .txt extension is the dataset. 
+    files = [p for p in os.listdir("data") if p.endswith(".txt")]
+    
+    for file in files:
+        imu = list()
+        waypoints = list()
+        f = open("data/"+file,"r")
+        for line in f:
+            if len(line)>0 and line[0] == "#":
+                continue
+            split = line.split("\t")
+            if len(split)>1 and (split[1] == "TYPE_ACCELEROMETER" or split[1] == "TYPE_MAGNETIC_FIELD" or split[1] == "TYPE_GYROSCOPE"):
+                #maybe with split 3 instead of split 2 depending on what bssid is.
+                imu.append([split[0], split[1], split[2], split[3], split[4]])
+            elif len(split)>1 and split[1] == "TYPE_WAYPOINT":
+                file_waypoints = split[2:]
+                for wpt in file_waypoints:
+                    wpt_data = wpt.split(",")
+                    waypoints.append([int(wpt_data[0]), float(wpt_data[1]), float(wpt_data[2]), float(wpt_data[3])])
+        f.close()
+
+        if not imu == []:
+            df = pd.DataFrame(imu)
+            #typecasting of values to proper type
+            df[0] = df[0].apply(lambda x: int(x))
+            df[4] = df[4].apply(lambda x: float(x[:-1]))
+            df[2] = df[2].apply(lambda x: float(x))
+            df[3] = df[3].apply(lambda x: float(x))
+            
+            #group by timestamp
+            grouped = df.groupby(0)
+            imu_feature = list()
+            for time_stamp, group in grouped:
+                #find nearest waypoint here
+                nearest_wp = find_nearest_wp_index(waypoints,time_stamp)
+                x = float(waypoints[nearest_wp][2])
+                y =float(waypoints[nearest_wp][3])
+                floor = int(waypoints[nearest_wp][1])
+                #group = group.reindex(["TYPE_ACCELEROMETER", "TYPE_MAGNETIC_FIELD", "TYPE_GYROSCOPE"])
+                acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].to_numpy()[0][2:5]
+                mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].to_numpy()[0][2:5]
+                gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].to_numpy()[0][2:5]
+                yield [time_stamp, acc_feat, mag_feat, gyro_feat, [x,y,floor]]
+            del df
+        del imu
+        gc.collect()
+
+#this function is only included to show how to access array written to file using np
+def load_np_to_text(filename):
+    return np.loadtxt(filename,delimiter=",")
 
 if __name__ == "__main__":
-    #commands will be written here
-    print()
+    gen = imu_data()
+    print(next(gen))
+    #calculate_all_bssids(100, "TYPE_WIFI")
+    #bssids = get_all_bssids()
+    #feat_arr = wifi_feature_construction(bssids, "TYPE_WIFI")
+    #print(feat_arr[0][3:6])
+    #print(wifi_feature_construction(bssids))
+    pass
     
