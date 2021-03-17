@@ -5,7 +5,6 @@ import numpy as np
 import gc
 from collections import Counter
 
-
 #finds all bssid values with an occurence over 'occ' and saves it into a bssids.json file. 
 # Type specifies which type of data is used, can either be TYPE_WIFI or TYPE_IBEACON
 def calculate_all_bssids(occ, type):
@@ -46,6 +45,7 @@ def find_nearest_wp_index(waypoints, time_stamp):
         dists.append(dist)
     return np.argmin(dists)
 
+#get waypoint with lowest timestamp in the list waypoints
 def lowest_waypoint(waypoints):
     timestamp = None
     x = y = None
@@ -54,7 +54,8 @@ def lowest_waypoint(waypoints):
             timestamp = int(k[0])
             x,y = float(k[2]), float(k[3])
     return x,y
-#TODO:maybe make it per file write if cannot hold data in main memmory.
+
+#TODO:maybe make generator.
 def wifi_feature_construction(bssids, type):
     wifi_features = list()
    
@@ -105,17 +106,25 @@ def wifi_feature_construction(bssids, type):
     #np.savetxt('data.csv',np.asarray(wifi_features),delimiter=',', fmt="%s") #this can be used to write the data to files.
     return wifi_features
 
+#output format of a next call to imu_data
+#[filename, [
+#               [timestamp, [start_x, start_y], [acc_x, acc_y, acc_z], 
+#               [mag_x, mag_y, mag_z], [gyro_x, gyro_y, gyro_z], [x,y,floor]
+#               ]
+#           ...
+#         ] 
+#]
 #generator/stream instead of a list
-def imu_data():
+def imu_data(filepath):
     #assumes that the data is in a data folder and the file with .txt extension is the dataset. 
-    files = [p for p in os.listdir("data") if p.endswith(".txt")]
+    files = [p for p in os.listdir(filepath) if p.endswith(".txt")]
     
     for file in files:
         imu = list()
         imu_features = list()
         waypoints = list()
         
-        f = open("data/"+file,"r")
+        f = open(filepath+"\\"+file,"r")
         for line in f:
             if len(line)>0 and line[0] == "#":
                 continue
@@ -156,15 +165,15 @@ def imu_data():
             mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].to_numpy()[0][2:5]
             gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].to_numpy()[0][2:5]
             imu_features.append([time_stamp,[start_x,start_y], acc_feat, mag_feat, gyro_feat, [x,y,floor]])
-        yield imu_features
+        yield [file,imu_features]
+
 
 #this function is only included to show how to access array written to file using np
 def load_np_to_text(filename):
     return np.loadtxt(filename,delimiter=",")
 
 if __name__ == "__main__":
-    gen = imu_data()
-    next(gen)
+    #gen = imu_data("data")
     
     #calculate_all_bssids(100, "TYPE_WIFI")
     #bssids = get_all_bssids()
@@ -172,4 +181,3 @@ if __name__ == "__main__":
     #print(feat_arr[0][3:6])
     #print(wifi_feature_construction(bssids)
     pass
-    
