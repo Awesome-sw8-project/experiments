@@ -88,7 +88,7 @@ class BasePDR:
         if len(self.acc_data) < lag:
             return 0
 
-        peak_detection = step.Step.peak_detection(self.acc_data, 5, lag = lag)
+        peak_detection = step.Step.peak_detection(self.acc_data, 10, lag = lag)
         avg_filter = peak_detection['avgFilter']
         window = self.__step_window(peak_detection['signals'])
 
