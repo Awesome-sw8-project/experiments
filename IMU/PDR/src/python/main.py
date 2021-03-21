@@ -1,4 +1,7 @@
 from pdr.pdr import BasePDR, AHRSPDR, Location
+import sys
+sys.path.append("../../../..")
+import datapipeline.datapipeline as dp
 
 pdr = AHRSPDR(Location(208.86206, 216.74796), True)
 loc1 = pdr.get_current_location(1574572522655, [1.0, 2.0, 5.4494324], [4.5, 5.3, 2.1], [0.4945526, 0.122528076, 0.25663757])
