@@ -26,13 +26,13 @@ def calculate_all_bssids(occ, type):
     bssids_dict = {bssid:occurence for (bssid,occurence) in bssids_dict.items() if occurence > occ}
     bssids_list = list(bssids_dict)
     bssids_json = json.dumps(bssids_list)
-    f = open("bssids.json", "w")
+    f = open(type +"_bssids.json", "w")
     f.write(bssids_json)
     f.close()
     
 #get all bssids from a bssids.json file. Can only be used after a call to calculate_all_bssids.
-def get_all_bssids():
-    f = open("bssids.json", "r")
+def get_all_bssids(type):
+    f = open(type+"_bssids.json", "r")
     lst = json.loads(f.read())
     f.close()
     return lst
@@ -105,6 +105,61 @@ def wifi_feature_construction(bssids, type):
         gc.collect()
     #np.savetxt('data.csv',np.asarray(wifi_features),delimiter=',', fmt="%s") #this can be used to write the data to files.
     return wifi_features
+
+def wifi_feats_site(site_files, data_path, rssi_type):
+    wifi_features = list()
+    ground_truth = list()
+    index = 5 # TODO fix this
+    for path in site_files:
+        waypoints = list()
+        wifi = list()
+        f = open(data_path+path,"r")
+        for line in f:
+            if len(line)>0 and line[0] == "#":
+                continue
+            split = line.split("\t")
+            if len(split)>1 and split[1] == rssi_type:
+                wifi.append([split[0], split[2], split[3], split[4]])
+            elif len(split)>1 and split[1] == "TYPE_WAYPOINT":
+                file_waypoints = split[2:]
+                for wpt in file_waypoints:
+                    wpt_data = wpt.split(",")
+                    waypoints.append([int(wpt_data[0]), float(wpt_data[1]), float(wpt_data[2]), float(wpt_data[3])])
+        f.close()
+        if wifi == []:
+            continue
+        df = pd.DataFrame(wifi)
+        del wifi
+        gc.collect()
+        index = bssids #TODO fix this
+        df[0] = df[0].apply(lambda x: int(x))
+        grouped = df.groupby(0)
+        for time_stamp, group in grouped:
+            #find nearest waypoint here
+            nearest_wp = find_nearest_wp_index(waypoints, time_stamp)
+            x = float(waypoints[nearest_wp][2])
+            y =float(waypoints[nearest_wp][3])
+            floor = int(waypoints[nearest_wp][1])
+            temp = group.iloc[:,2:4]
+            feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
+            #feat.reset_index(drop=True,inplace=True)
+            feat = feat.transpose()
+            feat_arr = feat.to_numpy()
+            feat_arr = np.append(feat_arr)
+            wifi_features.append(feat_arr)
+            ground_truth.append([x,y,floor])
+    return wifi_features, ground_truth
+        
+#return generator for rssi data.
+def wifi_features(rssi_type, data_path):
+    sites = [p.split("_")[0] for p in os.listdir(data_path) if p.endswith()]
+    sites = list(set(sites))
+    files = [p for p in os.listdir(data_path) if p.endswith(".txt")]
+    for site in sites:
+        site_files = [p for p in files if p.startswith(site)]
+        yield wifi_feats_site(site_files, data_path, rssi_type)
+
+
 
 #output format of a next call to imu_data
 #[filename, [
