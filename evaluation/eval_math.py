@@ -19,6 +19,6 @@ def mpe(estimations, ground_truths):
     sum = 0
 
     for i in range(len(estimations)):
-        sum += Eval.pe(estimations[i], ground_truths[i])
+        sum += pe(estimations[i], ground_truths[i])
 
     return sum / len(estimations)
