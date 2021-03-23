@@ -1,12 +1,9 @@
-import pandas as pd
-import os
-import json
-import numpy as np
-import gc
+import pandas as pd, os, json, gc, numpy as np
 from collections import Counter
 
 #finds all bssid values with an occurence over 'occ' and saves it into a bssids.json file. 
 # Type specifies which type of data is used, can either be TYPE_WIFI or TYPE_IBEACON
+#Deprecated!!!
 def calculate_all_bssids(occ, type):
     bssids_list = list()
     files = [p for p in os.listdir("data") if p.endswith(".txt")]
@@ -31,6 +28,7 @@ def calculate_all_bssids(occ, type):
     f.close()
     
 #get all bssids from a bssids.json file. Can only be used after a call to calculate_all_bssids.
+#Deprecated!!!
 def get_all_bssids(type):
     f = open(type+"_bssids.json", "r")
     lst = json.loads(f.read())
@@ -56,6 +54,7 @@ def lowest_waypoint(waypoints):
     return x,y
 
 #TODO:maybe make generator.
+#Deprecated!!!
 def wifi_feature_construction(bssids, type):
     wifi_features = list()
    
@@ -106,17 +105,43 @@ def wifi_feature_construction(bssids, type):
     #np.savetxt('data.csv',np.asarray(wifi_features),delimiter=',', fmt="%s") #this can be used to write the data to files.
     return wifi_features
 
+#Get a list of the BSSID values for each node for a particular site. 
+# This is used to index the RSSI values such that the same index in each list correpond to the same BSSID.
+def get_site_index(rssi_type, site_files, data_path, occ):
+    bssids_list = list()
+    for site in site_files:
+        f = open(data_path+"/"+site, "r", errors='ignore')
+        for line in f:
+            #omit the metadata in each file
+            if line[0] == "#":
+                continue
+            #data is separated by tabs
+            split = line.split("\t")
+            if len(split) > 0 and split[1] == rssi_type:
+                bssids_list.append(split[3]) #need to find real index.
+        f.close()
+    #creates a dictionary with the key being bssid and value being the occurance of the bssid value in the dataset.    
+    bssids_dict = dict(Counter(bssids_list))
+    #filtering of the bssids which are less than 'occ'
+    bssids_dict = {bssid:occurence for (bssid,occurence) in bssids_dict.items() if occurence > occ}
+    return list(bssids_dict)
+    
+#returns training data and ground truth for a site.
 def wifi_feats_site(site_files, data_path, rssi_type):
     wifi_features = list()
     ground_truth = list()
-    index = 5 # TODO fix this
+    
+    #Create index or list of BSSID values for a site.
+    index = get_site_index(rssi_type, site_files, data_path, 0)
     for path in site_files:
         waypoints = list()
         wifi = list()
-        f = open(data_path+"/"+path,"r")
+        #error are set to ignore as some special chars do not have utf-8 encoding.
+        f = open(data_path+"/"+path,"r", errors='ignore')
         for line in f:
             if len(line)>0 and line[0] == "#":
                 continue
+            #data is separated by tabs.
             split = line.split("\t")
             if len(split)>1 and split[1] == rssi_type:
                 wifi.append([split[0], split[2], split[3], split[4]])
@@ -141,24 +166,21 @@ def wifi_feats_site(site_files, data_path, rssi_type):
             floor = int(waypoints[nearest_wp][1])
             temp = group.iloc[:,2:4]
             feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
-            #feat.reset_index(drop=True,inplace=True)
             feat = feat.transpose()
-            feat_arr = feat.to_numpy()
-            feat_arr = np.append(feat_arr)
-            wifi_features.append(feat_arr)
+            wifi_features.append(feat.values[0])
             ground_truth.append([x,y,floor])
     return wifi_features, ground_truth
         
 #return generator for rssi data.
 def wifi_features(rssi_type, data_path):
-    sites = [p.split("_")[0] for p in os.listdir(data_path) if p.endswith()]
+    sites = [p.split("_")[0] for p in os.listdir(data_path) if p.endswith(".txt")]
+    #remove duplicate site ids
     sites = list(set(sites))
     files = [p for p in os.listdir(data_path) if p.endswith(".txt")]
     for site in sites:
         site_files = [p for p in files if p.startswith(site)]
-        yield wifi_feats_site(site_files, data_path, rssi_type)
-
-
+        train_data, ground_truth = wifi_feats_site(site_files, data_path, rssi_type)
+        yield  site, train_data, ground_truth
 
 #output format of a next call to imu_data
 #[filename, [
@@ -226,11 +248,10 @@ def load_np_to_text(filename):
     return np.loadtxt(filename,delimiter=",")
 
 if __name__ == "__main__":
-    gen = imu_data("/user/student.aau.dk/mijens17/P8/data/data/train")
-    print(next(gen))
-    #calculate_all_bssids(100, "TYPE_WIFI")
-    #bssids = get_all_bssids()
-    #feat_arr = wifi_feature_construction(bssids, "TYPE_WIFI")
-    #print(feat_arr[0][3:6])
-    #print(wifi_feature_construction(bssids)
+    #gen = imu_data("/user/student.aau.dk/mijens17/P8/data/data/train")
+    gen = wifi_features("TYPE_WIFI","data")
+    site, train, labels = next(gen)
+    print(site)
+    print(train)
+    print(labels)
     pass
