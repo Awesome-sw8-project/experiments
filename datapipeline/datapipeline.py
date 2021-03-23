@@ -131,7 +131,6 @@ def wifi_feats_site(site_files, data_path, rssi_type):
         df = pd.DataFrame(wifi)
         del wifi
         gc.collect()
-        index = bssids #TODO fix this
         df[0] = df[0].apply(lambda x: int(x))
         grouped = df.groupby(0)
         for time_stamp, group in grouped:
