@@ -113,7 +113,7 @@ def wifi_feats_site(site_files, data_path, rssi_type):
     for path in site_files:
         waypoints = list()
         wifi = list()
-        f = open(data_path+path,"r")
+        f = open(data_path+"/"+path,"r")
         for line in f:
             if len(line)>0 and line[0] == "#":
                 continue
@@ -178,7 +178,7 @@ def imu_data(filepath):
         imu_features = list()
         waypoints = list()
         
-        f = open(filepath+"\\"+file,"r")
+        f = open(filepath+"/"+file,"r")
         for line in f:
             if len(line)>0 and line[0] == "#":
                 continue
@@ -200,24 +200,23 @@ def imu_data(filepath):
         del imu
         #typecasting of values to proper type
         df[0] = df[0].apply(lambda x: int(x))
-        df[4] = df[4].apply(lambda x: float(x[:-1]))
+        df[4] = df[4].apply(lambda x: float(x))
         df[2] = df[2].apply(lambda x: float(x))
         df[3] = df[3].apply(lambda x: float(x))
-            
+
         #group by timestamp
         grouped = df.groupby(0)
         for time_stamp, group in grouped:
             #find nearest waypoint here
             nearest_wp = find_nearest_wp_index(waypoints,time_stamp)
             start_x, start_y = lowest_waypoint(waypoints)
-                
             x = float(waypoints[nearest_wp][2])
             y =float(waypoints[nearest_wp][3])
             floor = int(waypoints[nearest_wp][1])
             #group = group.reindex(["TYPE_ACCELEROMETER", "TYPE_MAGNETIC_FIELD", "TYPE_GYROSCOPE"])
-            acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].to_numpy()[0][2:5]
-            mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].to_numpy()[0][2:5]
-            gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].to_numpy()[0][2:5]
+            acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].values[0][2:5]
+            mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].values[0][2:5]
+            gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].values[0][2:5]
             imu_features.append([time_stamp,[start_x,start_y], acc_feat, mag_feat, gyro_feat, [x,y,floor]])
         yield [file,imu_features]
 
@@ -227,8 +226,8 @@ def load_np_to_text(filename):
     return np.loadtxt(filename,delimiter=",")
 
 if __name__ == "__main__":
-    #gen = imu_data("data")
-    
+    gen = imu_data("/user/student.aau.dk/mijens17/P8/data/data/train")
+    print(next(gen))
     #calculate_all_bssids(100, "TYPE_WIFI")
     #bssids = get_all_bssids()
     #feat_arr = wifi_feature_construction(bssids, "TYPE_WIFI")
