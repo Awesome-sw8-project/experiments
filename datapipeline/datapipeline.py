@@ -161,9 +161,14 @@ def wifi_feats_site(site_files, data_path, rssi_type):
         for time_stamp, group in grouped:
             #find nearest waypoint here
             nearest_wp = find_nearest_wp_index(waypoints, time_stamp)
+            
+            group = group.drop_duplicates(subset=2)
+            
+            #ground truth
             x = float(waypoints[nearest_wp][2])
             y =float(waypoints[nearest_wp][3])
             floor = int(waypoints[nearest_wp][1])
+            
             temp = group.iloc[:,2:4]
             feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
             feat = feat.transpose()
