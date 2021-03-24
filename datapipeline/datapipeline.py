@@ -255,8 +255,8 @@ def load_np_to_text(filename):
     return np.loadtxt(filename,delimiter=",")
 
 if __name__ == "__main__":
-    #gen = imu_data("/user/student.aau.dk/mijens17/P8/data/data/train")
-    #gen = wifi_features("TYPE_WIFI","/user/student.aau.dk/mijens17/P8/data/data/train")
+    #gen = imu_data("~/P8/data/data/train")
+    #gen = wifi_features("TYPE_WIFI","~/P8/data/data/train")
     #site, train, labels = next(gen)
     #print(site)
     #print(train)
