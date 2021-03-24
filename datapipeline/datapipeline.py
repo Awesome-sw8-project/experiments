@@ -236,6 +236,8 @@ def imu_data(filepath):
         for time_stamp, group in grouped:
             #find nearest waypoint here
             nearest_wp = find_nearest_wp_index(waypoints,time_stamp)
+            group = group.drop_duplicates(subset=1)
+            
             start_x, start_y = lowest_waypoint(waypoints)
             x = float(waypoints[nearest_wp][2])
             y =float(waypoints[nearest_wp][3])
