@@ -5,7 +5,7 @@ import numpy as np
 from pdr import filter
 from pdr import util
 from pdr import step
-from ahrs.filters import Madgwick, Mahony
+from ahrs.filters import Madgwick, Mahony, EKF
 from ahrs.common import Quaternion
 
 class Location:
@@ -118,27 +118,28 @@ class BasePDR:
 
 # Class for heading estimation using AHRS.
 class AHRSPDR(BasePDR):
-    def __init__(self, initial_location, use_madgwick):
+    def __init__(self, initial_location, heading_type = "madgwick"):
         super().__init__(initial_location)
-        self.use_madgwick = use_madgwick
+        self.heading_type = heading_type
 
-    # Madgwick heading estimation. Units are in meters, not centimeters.
+    # Madgwick, Mahony and Extended Kalman filter heading estimation. Units are in meters, not centimeters.
+    # Default is Madgwick
     def heading(self, accelerator_data, gyroscope_data, magnometer_data):
         orientation = None
 
-        if self.use_madgwick:
+        if self.heading_type == "madgwick":
             orientation = Madgwick(gyr = np.array(gyroscope_data), acc = np.array(accelerator_data), frequency = self._sample_rate())
 
-        else:
+        elif self.heading_type == "mahony":
             orientation = Mahony(gyr = np.array(gyroscope_data), acc = np.array(accelerator_data), frequency = self._sample_rate())
 
-        quaternion = Quaternion(orientation.Q[-1])
-        return quaternion.to_axang()[1]
+        elif self.heading_type == "kalman":
+            orientation = EKF(gyr = np.array(gyroscope_data), acc = np.array(accelerator_data), frequency = self._sample_rate())
 
-    # Heading estimation by Mahony.
-    def mahony_heading(self, accelerator_data, gyroscope_data, magnometer_data):
-        mahony = Mahony(gyr = np.array(gyroscope_data), acc = np.array(accelerator_data), frequency = self._sample_rate())
-        quaternion = Quaternion(mahony.Q[-1])
+        else:
+            raise ValueError("Unknwon heading estimation filter.")
+
+        quaternion = Quaternion(orientation.Q[-1])
         return quaternion.to_axang()[1]
 
     # Computes sample rate.
