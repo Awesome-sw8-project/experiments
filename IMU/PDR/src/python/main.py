@@ -1,51 +1,26 @@
-from pdr.pdr import BasePDR, AHRSPDR, Location
+#from pdr.pdr import BasePDR, AHRSPDR, Location
 import sys
 sys.path.append("../../../..")
 import datapipeline.datapipeline as dp
+import evaluation.evaluator as evaluator, evaluation.eval_output as eo
 
-pdr = AHRSPDR(Location(208.86206, 216.74796))
-loc1 = pdr.get_current_location(1574572522655, [1.0, 2.0, 5.4494324], [4.5, 5.3, 2.1], [0.4945526, 0.122528076, 0.25663757])
-loc2 = pdr.get_current_location(1574572522675, [1.0, 2.0, 5.6469574], [4.5, 5.3, 2.1], [0.10040283, 0.087371826, 0.27635193])
-loc3 = pdr.get_current_location(1574572522696, [1.0, 2.0, 6.6172028], [4.5, 5.3, 2.1], [-0.28788757, 0.07672119, 0.31736755])
-loc4 = pdr.get_current_location(1574572522716, [1.0, 2.0, 7.190613], [4.5, 5.3, 2.1], [-0.53715515, 0.0655365, 0.35305786])
-loc5 = pdr.get_current_location(1574572522736, [1.0, 2.0, 7.6119995], [4.5, 5.3, 2.1], [-0.6633911, 0.10974121, 0.31950378])
-loc6 = pdr.get_current_location(1574572522756, [1.0, 2.0, 8.436798], [4.5, 5.3, 2.1], [-0.5541992, 0.28659058, 0.17089844])
-loc7 = pdr.get_current_location(1574572522877, [1.0, 2.0, 9.450134], [4.5, 5.3, 2.1], [-1.0628662, -0.043655396, -0.07626343])
-loc8 = pdr.get_current_location(1574572522897, [1.0, 2.0, 13.235367], [4.5, 5.3, 2.1], [-1.1534119, -0.044189453, 0.02229309])
-loc9 = pdr.get_current_location(1574572522917, [1.0, 2.0, 14.442062], [4.5, 5.3, 2.1], [-0.7986908, 0.12466431, -0.008071899])
-loc10 = pdr.get_current_location(1574572522937, [1.0, 2.0, 16.289185], [4.5, 5.3, 2.1], [-0.59840393, 0.41122437, 0.020690918])
-loc11 = pdr.get_current_location(1574572522957, [1.0, 2.0, 20.341965], [4.5, 5.3, 2.1], [-0.32037354, 0.24822998, 0.056381226])
-loc12 = pdr.get_current_location(1574572522978, [1.0, 2.0, 17.854996], [4.5, 5.3, 2.1], [0.40454102, -0.35151672, 0.007904053])
-loc13 = pdr.get_current_location(1574572522998, [1.0, 2.0, 13.738754], [4.5, 5.3, 2.1], [0.9494171, -0.39466858, -0.06347656])
-loc14 = pdr.get_current_location(1574572523018, [1.0, 2.0, 11.000381], [4.5, 5.3, 2.1], [1.2375793, -0.40478516, -0.11140442])
-loc15 = pdr.get_current_location(1574572523038, [1.0, 2.0, 8.473312], [4.5, 5.3, 2.1], [1.4160004, -0.27694702, -0.0975647])
-loc16 = pdr.get_current_location(1574572523058, [1.0, 2.0, 7.112808], [4.5, 5.3, 2.1], [1.3478241, -0.090530396, -0.10021973])
-loc17 = pdr.get_current_location(1574572523078, [1.0, 2.0, 7.1505127], [4.5, 5.3, 2.1], [1.1811218, -0.020751953, -0.07092285])
-loc18 = pdr.get_current_location(1574572523098, [1.0, 2.0, 6.7470856], [4.5, 5.3, 2.1], [1.0239868, -0.034591675, -0.05015564])
-loc19 = pdr.get_current_location(1574572523119, [1.0, 2.0, 6.5657196], [4.5, 5.3, 2.1], [0.77311707, -0.047927856, -0.048568726])
-loc20 = pdr.get_current_location(1574572523139, [1.0, 2.0, 6.6429443], [4.5, 5.3, 2.1], [0.49508667, -0.004776001, -0.08157349])
-loc21 = pdr.get_current_location(1574572523159, [1.0, 2.0, 6.90271], [4.5, 5.3, 2.1], [0.25379944, 0.029327393, -0.121536255])
-loc22 = pdr.get_current_location(1574572523179, [1.0, 2.0, 7.160095], [4.5, 5.3, 2.1], [0.06098938, -0.0026397705, -0.14390564])
+iterator = dp.imu_data("../../../../../data/data/train/")
+pdr = None
+start = True
 
-print("(" + str(loc1.get_x()) + ", " + str(loc1.get_y()) + ")")
-print("(" + str(loc2.get_x()) + ", " + str(loc2.get_y()) + ")")
-print("(" + str(loc3.get_x()) + ", " + str(loc3.get_y()) + ")")
-print("(" + str(loc4.get_x()) + ", " + str(loc4.get_y()) + ")")
-print("(" + str(loc5.get_x()) + ", " + str(loc5.get_y()) + ")")
-print("(" + str(loc6.get_x()) + ", " + str(loc6.get_y()) + ")")
-print("(" + str(loc7.get_x()) + ", " + str(loc7.get_y()) + ")")
-print("(" + str(loc8.get_x()) + ", " + str(loc8.get_y()) + ")")
-print("(" + str(loc9.get_x()) + ", " + str(loc9.get_y()) + ")")
-print("(" + str(loc10.get_x()) + ", " + str(loc10.get_y()) + ")")
-print("(" + str(loc11.get_x()) + ", " + str(loc11.get_y()) + ")")
-print("(" + str(loc12.get_x()) + ", " + str(loc12.get_y()) + ")")
-print("(" + str(loc13.get_x()) + ", " + str(loc13.get_y()) + ")")
-print("(" + str(loc14.get_x()) + ", " + str(loc14.get_y()) + ")")
-print("(" + str(loc15.get_x()) + ", " + str(loc15.get_y()) + ")")
-print("(" + str(loc16.get_x()) + ", " + str(loc16.get_y()) + ")")
-print("(" + str(loc17.get_x()) + ", " + str(loc17.get_y()) + ")")
-print("(" + str(loc18.get_x()) + ", " + str(loc18.get_y()) + ")")
-print("(" + str(loc19.get_x()) + ", " + str(loc19.get_y()) + ")")
-print("(" + str(loc20.get_x()) + ", " + str(loc20.get_y()) + ")")
-print("(" + str(loc21.get_x()) + ", " + str(loc21.get_y()) + ")")
-print("(" + str(loc22.get_x()) + ", " + str(loc22.get_y()) + ")")
+for data in iterator:
+    pdr_measurements = list()
+    ground_truth = list()
+
+    for measure in data[1]:
+        if start:
+            pdr = AHRSPDR(Location(measure[1][0], measure[1][0]), heading_type = "madgwick")
+            start = False
+            continue
+
+        next_position = pdr.get_current_location(measure[0], measure[2], measure[3], measure[4])
+        pdr_measurement.append([next_position[0], next_position[1], measure[5][2]])
+        ground_truth.append(measure[5])
+
+    eval = evaluator.Evaluator(pdr_measurement, ground_truth)
+    eo.write(eval, "../../../../results/" + data[0])
