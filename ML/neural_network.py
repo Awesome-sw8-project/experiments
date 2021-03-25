@@ -18,14 +18,14 @@ train = [[-999, 34, 36], [16, -999, 43], [26, -999, 43], [36, -999, 43], [46, -9
 # format: [x,y, floor]
 ground_truth = [[1, 2, 3], [11, 4, 7], [2, 4, 7], [3, 4, 7], [4, 4, 7], [5, 4, 7], [6, 4, 7], [7, 4, 7], [8, 4, 7], [9, 4, 7], [10, 4, 7]]
 
+# merge data together as one dataframe
+train_df = pd.DataFrame(train)
+train_df["label"] = ground_truth
 
-def make_dataset(X_data,y_data,n_splits):
-    def gen():
-        for train_index, test_index in KFold(n_splits).split(X_data):
-            X_train, X_test = X_data[train_index], X_data[test_index]
-            y_train, y_test = y_data[train_index], y_data[test_index]
-            yield X_train,y_train,X_test,y_test
 
-    return tf.data.Dataset.from_generator(gen, (tf.float64,tf.float64,tf.float64,tf.float64))
 
-dataset=make_dataset(X,y,10)
+
+# prepare the cross-validation procedure
+cv = KFold(n_splits=10, random_state=1, shuffle=True)
+
+
