@@ -1,6 +1,18 @@
 import pandas as pd, os, json, gc, numpy as np
 from collections import Counter
 
+
+path_to_sample_submission = 'sample_submission.csv'
+
+def get_sites_from_sample(path_to_sample):
+    sub_df = pd.read_csv(path_to_sample)
+    sub_df2 = sub_df["site_path_timestamp"].apply(lambda x: pd.Series(x.split("_")))
+    sites = sorted(sub_df2[0].value_counts().index.tolist())
+    return sites
+
+def filter_files(files, sites):
+    return [p for p in files if p.split("_")[0] in sites]
+
 #finds all bssid values with an occurence over 'occ' and saves it into a bssids.json file. 
 # Type specifies which type of data is used, can either be TYPE_WIFI or TYPE_IBEACON
 #Deprecated!!!
@@ -196,10 +208,11 @@ def wifi_features(rssi_type, data_path):
 #         ] 
 #]
 #generator/stream instead of a list
-def imu_data(filepath):
+def imu_data(filepath, path_to_s_subm):
     #assumes that the data is in a data folder and the file with .txt extension is the dataset. 
     files = [p for p in os.listdir(filepath) if p.endswith(".txt")]
-    
+    #outcomment the following command to get data from all sites.
+    files = filter_files(files, get_sites_from_sample(path_to_s_subm))
     for file in files:
         imu = list()
         imu_features = list()
@@ -261,6 +274,9 @@ def load_np_to_text(filename):
     return np.loadtxt(filename,delimiter=",")
 
 if __name__ == "__main__":
+    #get_sites_from_sample(path_to_sample_submission)
+    
+    
     #gen = imu_data("~/P8/data/data/train")
     #gen = wifi_features("TYPE_WIFI","~/P8/data/data/train")
     #site, train, labels = next(gen)
