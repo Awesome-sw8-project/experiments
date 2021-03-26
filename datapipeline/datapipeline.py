@@ -237,12 +237,18 @@ def imu_data(filepath):
             #find nearest waypoint here
             nearest_wp = find_nearest_wp_index(waypoints,time_stamp)
             group = group.drop_duplicates(subset=1)
-            
+
             start_x, start_y = lowest_waypoint(waypoints)
             x = float(waypoints[nearest_wp][2])
             y =float(waypoints[nearest_wp][3])
             floor = int(waypoints[nearest_wp][1])
             #group = group.reindex(["TYPE_ACCELEROMETER", "TYPE_MAGNETIC_FIELD", "TYPE_GYROSCOPE"])
+
+            if(len(group.loc[group[1]=="TYPE_ACCELEROMETER"].values) == 0 or
+                    len(group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].values) == 0 or
+                    len(group.loc[group[1]=="TYPE_GYROSCOPE"].values) == 0):
+                continue
+
             acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].values[0][2:5]
             mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].values[0][2:5]
             gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].values[0][2:5]
