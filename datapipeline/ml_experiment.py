@@ -11,6 +11,10 @@ from sklearn.model_selection import KFold
 import pickle
 import matplotlib.pyplot as plt
 
+def squared_error(y_true, y_pred):
+    return tf.math.squared_difference(y_true,y_pred)
+
+
 path_to_train = ''
 path_to_save = ''
 
@@ -41,8 +45,9 @@ def create_model2(input_d):
     model.add(layers.Dense(w2, activation='sigmoid'))
     model.add(layers.Dense(w2, activation='sigmoid'))
     model.add(layers.Dense(3))
-    model.compile(optimizer=tf.optimizers.Adam(lr=0.001),
-                  loss='mse', metrics=['mse'])
+    model.compile(optimizer=tf.optimizers.Adam(lr=0.01),
+                  loss='mse', 
+                  metrics=['mean_squared_error',squared_error])
     #model.summary()
     return model
 
@@ -63,7 +68,13 @@ def fit_model_site(site, train_data, target_data, path_to_save):
     
     for train, test in kfold.split(train_data, target_data):
         model = create_model2(train_data[0].shape[0])
-        history = model.fit(train_data[train], target_data[train], verbose=1, epochs=50, validation_data=(train_data[test],target_data[test]))
+        history = model.fit(
+                            train_data[train], 
+                            target_data[train], 
+                            verbose=1, 
+                            epochs=50,
+                            callbacks=[EarlyStopping(monitor='val_loss')],
+                            validation_data=(train_data[test],target_data[test]))
         with open('{pts}/{site}_{fold}_NN02.pickle'.format(pts=path_to_save,site=site, fold=fold_no), 'wb') as f:
             pickle.dump(history.history, f)
 
