@@ -15,7 +15,7 @@ def __write_pes(evaluator, file):
         file.write(str(i) + "\t\t\t" + str(results[i]) + "\n")
 
 # Writes integer value as MPE average.
-def write_mpe_avg(val):
-    with open("average.txt", "w") as file:
+def write_mpe_avg(path, val):
+    with open(path + "average.txt", "w") as file:
         file.write("MPE average\n")
         file.write(str(val))
