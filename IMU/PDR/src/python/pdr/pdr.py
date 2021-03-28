@@ -148,4 +148,4 @@ class AHRSPDR(BasePDR):
             return 100
 
         time_period = (BasePDR.get_timestamps(self)[-1] - BasePDR.get_timestamps(self)[0]) / 1000
-        return len(BasePDR.get_timestamps(self)) / time_period
+        return time_period / len(BasePDR.get_timestamps(self))
