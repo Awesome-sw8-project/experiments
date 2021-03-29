@@ -140,7 +140,7 @@ def imu_data(filepath, path_to_s_subm):
         imu_features = list()
         waypoints = list()
         
-        f = open(filepath+"/"+file,"r")
+        f = open(filepath+"/"+file,"r",errors='ignore')
         for line in f:
             if len(line)>0 and line[0] == "#":
                 continue
