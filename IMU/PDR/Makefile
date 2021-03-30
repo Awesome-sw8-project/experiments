@@ -10,7 +10,7 @@ LIB_BUILD=ar cr $(LIB) $(LIB_OBJECTS) && rm $(LIB_OBJECTS)
 REFACTOR=mkdir lib/DeadReckoner/include && mv lib/DeadReckoner/'Dead Reckoner'/* lib/DeadReckoner/include && rmdir lib/DeadReckoner/'Dead Reckoner'/
 
 lib_test: $(SRC) ;\
-    $(CC) -o lib_test $(LIB_SRC) $(CLAGS) $(LIB)
+    $(CC) -o lib_test $(LIB_SRC) $(CFLAGS) $(LIB)
 
 install: ;\
     mkdir lib && cd lib && git clone $(PDR_SUBMODULE) && cd .. && $(REFACTOR) && $(LIB_OBJECTS_BUILD) && $(LIB_BUILD) && mv $(LIB) lib/
@@ -19,4 +19,4 @@ uninstall: ;\
     rm -rf lib
 
 clean: ;\
-    rm -rf $(LIB_OBJECTS) *.out
+    rm -rf $(LIB_OBJECTS) *.out lib_test
