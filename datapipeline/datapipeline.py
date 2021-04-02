@@ -2,8 +2,9 @@ import pandas as pd, os, json, gc, numpy as np, pickle
 from collections import Counter
 
 train_path = ''
-path_to_sample_submission = ''
-path_to_site_indices = ''
+path_to_s_subm = "/user/student.aau.dk/mijens17/P8/data/data/sample_submission.csv"
+path_to_test = '/user/student.aau.dk/mijens17/P8/data/data/test'
+path_to_indices = '/user/student.aau.dk/mijens17/P8/train_data_new/indices'
 
 def get_sites_from_sample(path_to_sample):
     sub_df = pd.read_csv(path_to_sample)
@@ -127,67 +128,46 @@ def rssi_features(rssi_type, data_path, path_to_s_subm, path_to_site_index):
 
 
 #returns training data and ground truth for a site.
-def test_feats(rssi_type, index, path_to_s_subm):
-    ssubm = pd.read_csv(path_to_sample_submission)
+def test_feats_pickled(rssi_type, path_to_s_subm,path_to_test, path_to_indices, path_to_save_test):
+    ssubm = pd.read_csv(path_to_s_subm)
+    #ssubm_df contains site, path and timestamp
     ssubm_df = ssubm["site_path_timestamp"].apply(lambda x: pd.Series(x.split("_")))
+    
     #group by the sites
     ssubm_groups = ssubm_df.groupby(0)    
     for gid0, g0 in ssubm_groups:
+        with open("{path_to_i}/{site}.pickle".format(path_to_i=path_to_indices, site=gid0), "rb") as f:
+            index = pickle.load(f)
+        
         feats = list()
         for gid, g in g0.groupby(1):
-            with open("path_to_test .txt".format(), "rb") as f:
-                txt. f.readlines()
-            wifi = list()
+            with open("{path_to_test}/{site}_{path}.txt".format(path_to_test=path_to_test,site =gid0, path = gid), "r") as f:
+                txt = f.readlines()
+            rssi = list()
             for line in txt:
-                line = line.strip().split()
+                
+                line = line.split("\t")
                 if line[1] == rssi_type:
-                    wifi.append(line)
-            wifi_df = pd.DataFrame(wifi)
-            wifi_points = pd.DataFrame(wifi_df.groupby(0).count().index.tolist())
+                    rssi.append(line)
+            
+            rssi_df = pd.DataFrame(rssi)
+            del rssi
+            gc.collect()
+            rssi_points = pd.DataFrame(rssi_df.groupby(0).count().index.tolist())
 
             for timepoint in g.iloc[:,2].tolist():
-                deltas = (wifi_points.astype(int)-int(timepoint)).abs()
+                deltas = (rssi_points.astype(int)-int(timepoint)).abs()
                 min_delta_idx = deltas.values.argmin()
-                wifi_block_timestamp = wifi_points.iloc[min_delta_idx].values[0]
-                wifi_block = wifi_df[wifi_df[0]== wifi_block_timestamp].drop_duplicates(subset=3)
-                feat = wifi_block.set_index(3)[4].reindex(index).fillna(-999)
-                feat['site_path_timestamp'] = "{site}_{path}_{timestamp}".format(site=g.iloc[0,0], path=g.iloc[0,1],timestamp=timepoint)
-                feats.append(feat)
-        feature_df = pd.concat(feats,axis=1).T
-        "feature_df.values or to csv
+                rssi_block_timestamp = rssi_points.iloc[min_delta_idx].values[0]
+                rssi_block = rssi_df[rssi_df[0]== rssi_block_timestamp].drop_duplicates(subset=3)
+                
+                
+                feat = rssi_block.set_index(3)[4].reindex(index).fillna(-999)
+                site_path_timestamp = "{site}_{path}_{timestamp}".format(site=g.iloc[0,0], path=g.iloc[0,1],timestamp=timepoint)
+                feats.append((feat.values, site_path_timestamp))
 
-    wifi_features = list()
-    ground_truth = list()
-    
-    for path in site_files:
-        waypoints = list()
-        wifi = list()
-        #error are set to ignore as some special chars do not have utf-8 encoding.
-        f = open(data_path+"/"+path,"r", errors='ignore')
-        for line in f:
-            if len(line)>0 and line[0] == "#":
-                continue
-            #data is separated by tabs.
-            split = line.split("\t")
-            if len(split)>1 and split[1] == rssi_type:
-                wifi.append([split[0], split[2], split[3], split[4]])
-        f.close()
-        if wifi == []:
-            continue
-        df = pd.DataFrame(wifi)
-        del wifi
-        gc.collect()
-        df[0] = df[0].apply(lambda x: int(x))
-        grouped = df.groupby(0)
-        for time_stamp, group in grouped:
-            #find nearest waypoint here
-            group = group.drop_duplicates(subset=2)
-            
-            temp = group.iloc[:,2:4]
-            feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
-            feat = feat.transpose()
-            wifi_features.append(feat.values[0])
-    return wifi_features
+        with open("{path_to_save}/{site}.pickle".format(path_to_save=path_to_save_test,site=gid0),"wb") as f:
+            pickle.dump(feats,f)
 
 
 #output format of a next call to imu_data
@@ -269,7 +249,8 @@ def load_np_to_text(filename):
     return np.loadtxt(filename,delimiter=",")
 
 if __name__ == "__main__":
-    #train_gen = rssi_features("TYPE_WIFI",train_path, path_to_sample_submission, path_to_site_indices)
+    test_feats("TYPE_WIFI", path_to_s_subm,path_to_test, path_to_indices):
+    # train_gen = rssi_features("TYPE_WIFI",train_path, path_to_sample_submission, path_to_site_indices)
     #rssi_type, data_path, path_to_s_subm, path_to_site_index)
     #for site, train, labels in train_gen:
     #    with open("{site}.pickle".format(site=site), "wb") as f:
