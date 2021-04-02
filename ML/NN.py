@@ -23,9 +23,10 @@ def fit(train_data, target_data, experiment_no):
         history = model.fit(
                             train_data[train], 
                             target_data[train], 
+                            batch_size=32,
                             verbose=1, 
-                            epochs=50,
-                            callbacks=[EarlyStopping(monitor='val_loss')],
+                            epochs=100,
+                            callbacks=[EarlyStopping(monitor='val_loss', patience=10)],
                             validation_data=(train_data[test],target_data[test]))
         with open('{pts}/{site}_{fold}_NN{exp_no}.pickle'.format(pts=path_to_save,site=site, fold=fold_no, exp_no=experiment_no), 'wb') as f:
             pickle.dump(history.history, f)
