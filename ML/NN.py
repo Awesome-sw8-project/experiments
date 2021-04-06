@@ -13,7 +13,7 @@ from load_data import get_x_y_floor, gen_for_serialisation
 from models.model02 import create_model
 
 #fit to the neural net
-def fit(train_data, target_data, experiment_no):
+def fit(train_data, target_data, experiment_no, path_to_save):
     # Define the K-fold Cross Validator
     kfold = KFold(n_splits=10, shuffle=True)
     # K-fold Cross Validation model evaluation
@@ -32,22 +32,23 @@ def fit(train_data, target_data, experiment_no):
             pickle.dump(history.history, f)
         fold_no = fold_no +1
 
-def fit_model_site(site, train_data, target_data, path_to_save, isMultiplie=True):
-    if isMultiple:
-        xs,ys,floors = get_x_y_floor(target_data)
+#fits model to x,y and floor coordinates
+def fit_model_site(site, train_data, target_data, path_to_save):
     train_data = np.array(train_data)
     train_data = train_data.astype(np.float)
     target_data = np.array(target_data)
     target_data = target_data.astype(np.float)
     #predictors = ['x','y','floor']
-    fit(train_data, target_data, "03")
+    fit(train_data, target_data, "03", path_to_save)
 
+#fits models for x,y, and floor seperately.
 def fit_model_site_all_three_model(site, train_data, target_data, path_to_save, exp_no)
     train_data = np.array(train_data)
     xs,ys,floors = get_x_y_floor(target_data)
-    target_data = {"xs": xs, "ys": ys, "floors" =floors}
+    target_data = {"xs": xs, "ys": ys, "floors" :floors}
     for target in ["xs", "ys", "floors"]: #maybe list
-        fit(train_data, target_data[target], "NN{exp_no}_{name}.pickle").format(exp_no=exp_no, name=target))
+        fit(train_data, target_data[target], "NN{exp_no}_{name}.pickle".format(exp_no=exp_no, name=target), path_to_save)
+
 
 if __name__ == "__main__":
     gen = gen_for_serialisation()
