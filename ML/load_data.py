@@ -1,4 +1,3 @@
-
 import os, pickle
 
 def get_x_y_floor(truth_array):
