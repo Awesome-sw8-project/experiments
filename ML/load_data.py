@@ -18,3 +18,8 @@ def gen_for_serialisation(path_to_train):
         site, train, ground = pickle.load(f)
         f.close()
         yield site,train,ground
+
+def get_data_for_test(pt_test,site):
+    with open("{pt_test}/{site}.pickle".format(pt_test=pt_test,site=site), "rb") as f:
+        test_data = pickle.load(f)
+    
