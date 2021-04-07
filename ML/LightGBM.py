@@ -18,23 +18,8 @@ import sys
 import math
 from contextlib import contextmanager
 
-# import datapipeline to retrieve formatted data
-sys.path.append(os.path.join(os.path.dirname(file), '../datapipeline'))
-import datapipeline as data
-# TODO: Add right functionality to retrieve data from data pipeline
+from load_data import get_x_y_floor, gen_for_serialisation_one_path
 
-# we use data pipeline to retrieve RSSID values
-train = [[-999, 34, 36], [16, -999, 43], [26, -999, 43], [36, -999, 43], [46, -999, 43], [56, -999, 43], [66, -999, 43], [76, -999, 43], [86, -999, 43], [96, -999, 43], [106, -999, 43]]
-# we use data pipeline to then retrieve the ground truth data corresponding to the train array
-# format: [x,y, floor]
-ground_truth = [[1, 2, 3], [11, 4, 7], [2, 4, 7], [3, 4, 7], [4, 4, 7], [5, 4, 7], [6, 4, 7], [7, 4, 7], [8, 4, 7], [9, 4, 7], [10, 4, 7]]
-
-# merge data together as one dataframe
-#train_df = pd.DataFrame(train)
-#train_df["label"] = ground_truth
-train_dataset = Group.create_dataset(train, ground_truth)
-#val_dataset = create_dataset(x_val, y_val)
-print(train_dataset)
 
 # ------------------------------------------------------------------------------
 # Fixed values
@@ -92,14 +77,9 @@ def score_log(df: pd.DataFrame, num_files: int, nam_file: str, data_shape: tuple
 # Set seed
 # ------------------------------------------------------------------------------
 set_seed(SEED)
-
-# ------------------------------------------------------------------------------
-# Read data
-# ------------------------------------------------------------------------------
-feature_dir = "../input/indoor-navigation-and-location-wifi-features"
-train_files = sorted(glob.glob(os.path.join(feature_dir, '*_train.csv')))
-test_files = sorted(glob.glob(os.path.join(feature_dir, '*_test.csv')))
-subm = pd.read_csv('../input/indoor-location-navigation/sample_submission.csv', index_col=0)
+train_files = sorted(glob.glob('../input/indoor-positioning-traindata/train_data/*'))
+#test_files = sorted(glob.glob('../input/indoor-positioning-testdata/test_data/*'))
+# subm = pd.read_csv('../input/indoor-location-navigation/sample_submission.csv', index_col=0)
 
 # ------------------------------------------------------------------------------
 # Define parameters for models
@@ -141,8 +121,16 @@ score_df = pd.DataFrame()
 oof = list()
 predictions = list()
 for n_files, file in enumerate(train_files):
-    data = pd.read_csv(file, index_col=0)
-    test_data = pd.read_csv(test_files[n_files], index_col=0)
+    # TRAIN
+    site, train, ground = gen_for_serialisation_one_path(file)
+    df1 = pd.DataFrame(train)
+    df2 = pd.DataFrame(ground)
+    df2.columns = ['x','y','f']
+    data = pd.concat([df1, df2], axis=1, join='inner')
+
+    # TEST
+    test_site, test_train, test_ground = gen_for_serialisation_one_path(file)
+    test_data = pd.DataFrame(test_train)
 
     oof_x, oof_y, oof_f = np.zeros(data.shape[0]), np.zeros(data.shape[0]), np.zeros(data.shape[0])
     preds_x, preds_y = 0, 0
@@ -150,16 +138,19 @@ for n_files, file in enumerate(train_files):
 
     kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
     for fold, (trn_idx, val_idx) in enumerate(kf.split(data.iloc[:, :-4])):
-        X_train = data.iloc[trn_idx, :-4]
-        y_trainx = data.iloc[trn_idx, -4]
-        y_trainy = data.iloc[trn_idx, -3]
-        y_trainf = data.iloc[trn_idx, -2]
+        X_train = data.iloc[trn_idx, :-3]
+        y_trainx = data.iloc[trn_idx, -3]
+        y_trainy = data.iloc[trn_idx, -2]
+        y_trainf = data.iloc[trn_idx, -1]
 
-        X_valid = data.iloc[val_idx, :-4]
-        y_validx = data.iloc[val_idx, -4]
-        y_validy = data.iloc[val_idx, -3]
-        y_validf = data.iloc[val_idx, -2]
+        X_valid = data.iloc[val_idx, :-3]
+        y_validx = data.iloc[val_idx, -3]
+        y_validy = data.iloc[val_idx, -2]
+        y_validf = data.iloc[val_idx, -1]
 
+        print(y_trainx)
+        print(y_trainy)
+        print(y_trainf)
         modelx = lgb.LGBMRegressor(**lgb_params)
         with timer("fit X"):
             modelx.fit(X_train, y_trainx,
@@ -217,9 +208,11 @@ for n_files, file in enumerate(train_files):
     test_preds["floor"] = test_preds["floor"].astype(int)
     predictions.append(test_preds)
 
-# ------------------------------------------------------------------------------
-# Submit the result
-# ------------------------------------------------------------------------------
+
+for site, train, truth in gen-train:
+    fit_model_site(site, train, truth)
+
+# create file with results
 all_preds = pd.concat(predictions)
 all_preds = all_preds.reindex(subm.index)
 all_preds.to_csv('submission.csv')
