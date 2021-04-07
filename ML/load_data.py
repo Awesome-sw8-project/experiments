@@ -20,6 +20,11 @@ def gen_for_serialisation(path_to_train):
         yield site,train,ground
 
 def get_data_for_test(pt_test,site):
+    test_data = None
     with open("{pt_test}/{site}.pickle".format(pt_test=pt_test,site=site), "rb") as f:
-        test_data = pickle.load(f)
-    
+        test_data = pickle.load(f)    
+    for feat, timestamp in test_data:
+        print(timestamp)
+        exit()
+
+get_data_for_test("C:/Users/Abiram Mohanaraj/Downloads/test_data/test_data","5dc8cea7659e181adb076a3f")
