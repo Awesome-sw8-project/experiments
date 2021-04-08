@@ -2,9 +2,9 @@ import pandas as pd, os, json, gc, numpy as np, pickle
 from collections import Counter
 
 train_path = ''
-path_to_s_subm = "/user/student.aau.dk/mijens17/P8/data/data/sample_submission.csv"
-path_to_test = '/user/student.aau.dk/mijens17/P8/data/data/test'
-path_to_indices = '/user/student.aau.dk/mijens17/P8/train_data_new/indices'
+path_to_s_subm = ""
+path_to_test = ''
+path_to_indices = ''
 
 def get_sites_from_sample(path_to_sample):
     sub_df = pd.read_csv(path_to_sample)
