@@ -130,12 +130,15 @@ def wifi_features(rssi_type, data_path, path_to_s_subm):
 #         ] 
 #]
 #generator/stream instead of a list
-def imu_data(filepath, path_to_s_subm):
+def imu_data(filepath, path_to_s_subm, omit_count):
     #assumes that the data is in a data folder and the file with .txt extension is the dataset. 
     files = [p for p in os.listdir(filepath) if p.endswith(".txt")]
     #outcomment the folslowing command to get data from all sites.
     files = filter_files(files, get_sites_from_sample(path_to_s_subm))
+    count = 1
     for file in files:
+        if count <= omit_count:
+            continue
         imu = list()
         imu_features = list()
         waypoints = list()
