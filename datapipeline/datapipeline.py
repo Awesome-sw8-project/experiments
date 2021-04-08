@@ -138,6 +138,7 @@ def imu_data(filepath, path_to_s_subm, omit_count):
     count = 1
     for file in files:
         if count <= omit_count:
+            count = count = count +1
             continue
         imu = list()
         imu_features = list()
