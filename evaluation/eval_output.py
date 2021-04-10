@@ -1,4 +1,4 @@
-import evaluator
+import evaluation.evaluator
 
 # Writes evaluation output.
 def write(evaluator, output_name):
