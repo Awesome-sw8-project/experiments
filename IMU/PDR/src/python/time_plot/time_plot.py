@@ -3,10 +3,15 @@ import sys
 sys.path.append("../../../../..")
 import datapipeline.datapipeline as dp
 
+num_count = 0
+num_files = 10850
 iterator = dp.imu_data("../../../../../../data/data/train/", "../../../../../../data/data/sample_submission.csv", 0)
 prev_time = None
 
 for data in iterator:
+    print("Progress: " + str(num_count / num_files) * 100, end = "\r", flush = True)
+    num_count += 1
+
     i = 0
 
     with open(data[0] + ".csv", "w", newline = '') as file:
