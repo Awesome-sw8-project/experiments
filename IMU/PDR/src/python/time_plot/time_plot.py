@@ -7,14 +7,22 @@ num_count = 0
 num_files = 10850
 iterator = dp.imu_data("../../../../../../data/data/train/", "../../../../../../data/data/sample_submission.csv", 0)
 prev_time = None
+sites = []
 
 for data in iterator:
-    print("Progress: " + str(num_count / num_files) * 100, end = "\r", flush = True)
+    print("Progress: " + str((num_count / num_files) * 100) + "%", end = "\r", flush = True)
     num_count += 1
 
     i = 0
+    site = data[0][0:24]
 
-    with open(data[0] + ".csv", "w", newline = '') as file:
+    if site in sites:
+        continue
+
+    else:
+        sites.append(site)
+
+    with open(site + ".csv", "w", newline = '') as file:
         writer = csv.writer(file)
         prev_time = data[1][0]
         writer.writerow(["i", "Time difference"])
