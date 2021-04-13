@@ -32,7 +32,7 @@ def fit(train_data, target_data, experiment_no, path_to_save, test_data):
                             target_data[train], 
                             batch_size=32,
                             verbose=1, 
-                            epochs=1,
+                            epochs=100,
                             callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)],
                             validation_data=(train_data[test],target_data[test]))
         with open('{pts}/{site}_{fold}_NN{exp_no}.pickle'.format(pts=path_to_save,site=site, fold=fold_no, exp_no=experiment_no), 'wb') as f:
@@ -48,9 +48,10 @@ def fit(train_data, target_data, experiment_no, path_to_save, test_data):
 
         fold_no = fold_no +1
     for key in predictions.keys():
-        predictions[key] = [x/2 for x in predictions[key]]
+        predictions[key] = [x/10 for x in predictions[key]]
     return predictions
 
+#Deprecated for Now!!!
 #fits model to x,y and floor coordinates
 def fit_model_site(site, train_data, target_data, path_to_save, test_data):
     train_data = np.array(train_data)
@@ -77,6 +78,7 @@ def fit_model_site_all_three_model(site, train_data, target_data, path_to_save, 
             test_df["floor"] = test_df["timestamp"].map(preds)
             test_df["floor"] = test_df["floor"].apply(lambda x: x[0])
     return test_df
+
 def get_sample_submission_index(path_to_sample):
     df = pd.read_csv(path_to_sample)
     return df["site_path_timestamp"]
