@@ -35,9 +35,23 @@ def lowest_waypoint(waypoints):
     return x,y
 
 
+def test_bssids(to_test, site):
+    files = [f for f in os.listdir(to_test) if f.split("_")[0]==site]
+    bssid_list = list()
+    for file in files:
+        with open("{}/{}".format(to_test,file), "r") as f:
+            data = f.readlines()
+        for line in data:
+            splits = line.split("\t")
+            if splits[0] == '#':
+                continue
+            if splits[1] == 'TYPE_WIFI':
+                bssid_list.append(splits[3])
+    return bssid_list
+
 #Get a list of the BSSID values for each node for a particular site. 
 # This is used to index the RSSI values such that the same index in each list correpond to the same BSSID.
-def get_site_index(rssi_type, site_files, data_path, occ):
+def get_site_index(rssi_type,siteID, site_files, data_path, path_to_test_set, occ):
     bssids_list = list()
     for site in site_files:
         f = open(data_path+"/"+site, "r", errors='ignore')
@@ -54,16 +68,20 @@ def get_site_index(rssi_type, site_files, data_path, occ):
     bssids_dict = dict(Counter(bssids_list))
     #filtering of the bssids which are less than 'occ'
     bssids_dict = {bssid:occurence for (bssid,occurence) in bssids_dict.items() if occurence > occ}
-    return list(bssids_dict)
+    bssid = list(bssids_dict)
+    test_bssid = test_bssids(path_to_test_set, siteID)
+    print("test BSSID values for site {} is {}".format(siteID,len(test_bssid)))
+    bssid.extend(test_bssid)
+    return list(set(bssid))
 
 #returns training data and ground truth for a site.
-def rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index):
+def rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test):
     wifi_features = list()
     ground_truth = list()
     
     #Create index or list of BSSID values for a site.
-    index = get_site_index(rssi_type, site_files, data_path, 1000)
-    with open("{path}/{site}.pickle".format(path=path_to_site_index, site=site), "wb") as f:
+    index = get_site_index(rssi_type, site, site_files, data_path,path_to_test, 1000)
+    with open("{}/{}.pickle".format(path_to_site_index, site), "wb") as f:
         pickle.dump(index, f)
     for path in site_files:
         waypoints = list()
@@ -107,9 +125,9 @@ def rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index):
             wifi_features.append(feat.values[0])
             ground_truth.append([x,y,floor])
     return wifi_features, ground_truth
-        
+
 #return generator for rssi data.
-def rssi_features(rssi_type, data_path, path_to_s_subm, path_to_site_index):
+def rssi_features(rssi_type, data_path, path_to_s_subm, path_to_site_index, path_to_test):
     sites = [p.split("_")[0] for p in os.listdir(data_path) if p.endswith(".txt")]
     
     #remove duplicate site ids
@@ -122,10 +140,8 @@ def rssi_features(rssi_type, data_path, path_to_s_subm, path_to_site_index):
     files = [p for p in os.listdir(data_path) if p.endswith(".txt")]
     for site in sites:
         site_files = [p for p in files if p.startswith(site)]
-        train_data, ground_truth = rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index)
+        train_data, ground_truth = rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test)
         yield  site, train_data, ground_truth
-
-
 
 #returns training data and ground truth for a site.
 def test_feats_pickled(rssi_type, path_to_s_subm,path_to_test, path_to_indices, path_to_save_test):
@@ -249,19 +265,9 @@ def load_np_to_text(filename):
     return np.loadtxt(filename,delimiter=",")
 
 if __name__ == "__main__":
-    test_feats("TYPE_WIFI", path_to_s_subm,path_to_test, path_to_indices):
-    # train_gen = rssi_features("TYPE_WIFI",train_path, path_to_sample_submission, path_to_site_indices)
-    #rssi_type, data_path, path_to_s_subm, path_to_site_index)
+    #train_gen = rssi_features("TYPE_WIFI",train_path, path_to_s_subm, path_to_indices, path_to_test)
     #for site, train, labels in train_gen:
     #    with open("{site}.pickle".format(site=site), "wb") as f:
     #        pickle.dump((site,train, labels), f)
-    #get_sites_from_sample(path_to_sample_submission)
-    
-    
-    #gen = imu_data("~/P8/data/data/train")
-    #gen = wifi_features("TYPE_WIFI","~/P8/data/data/train")
-    #site, train, labels = next(gen)
-    #print(site)
-    #print(train)
-    #print(labels)
+    #test_feats_pickled("TYPE_WIFI", path_to_s_subm,path_to_test, path_to_indices, ".")
     pass
