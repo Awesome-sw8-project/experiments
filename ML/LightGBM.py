@@ -18,13 +18,13 @@ import sys
 import math
 from contextlib import contextmanager
 
-from load_data import get_x_y_floor, gen_for_serialisation_one_path
+from load_data import *
 
 
 # ------------------------------------------------------------------------------
 # Fixed values
 # ------------------------------------------------------------------------------
-N_SPLITS = 10
+N_SPLITS = 20
 SEED = 42
 
 # ------------------------------------------------------------------------------
@@ -71,15 +71,13 @@ def score_log(df: pd.DataFrame, num_files: int, nam_file: str, data_shape: tuple
     return df
 
 
-
-
 # ------------------------------------------------------------------------------
 # Set seed
 # ------------------------------------------------------------------------------
 set_seed(SEED)
 train_files = sorted(glob.glob('../input/indoor-positioning-traindata/train_data/*'))
-#test_files = sorted(glob.glob('../input/indoor-positioning-testdata/test_data/*'))
-# subm = pd.read_csv('../input/indoor-location-navigation/sample_submission.csv', index_col=0)
+test_files = sorted(glob.glob('../input/indoor-positioning-traindata/test_data/*'))
+subm = pd.read_csv('../input/indoor-positioning-traindata/sample_submission.csv', index_col=0)
 
 # ------------------------------------------------------------------------------
 # Define parameters for models
@@ -114,43 +112,47 @@ lgb_f_params = {'objective': 'multiclass',
                 'n_jobs': -1
                 }
 
+
 # ------------------------------------------------------------------------------
 # Training and inference
 # ------------------------------------------------------------------------------
 score_df = pd.DataFrame()
 oof = list()
 predictions = list()
+
 for n_files, file in enumerate(train_files):
     # TRAIN
     site, train, ground = gen_for_serialisation_one_path(file)
     df1 = pd.DataFrame(train)
     df2 = pd.DataFrame(ground)
-    df2.columns = ['x','y','f']
+    #df2.columns = ['x','y','f']
     data = pd.concat([df1, df2], axis=1, join='inner')
 
     # TEST
-    test_site, test_train, test_ground = gen_for_serialisation_one_path(file)
-    test_data = pd.DataFrame(test_train)
+    test_data = gen_for_serialisation_one_path_test(test_files[n_files])
+    test_data = pd.DataFrame(test_data)
+    test_data.columns = ['Bssid','site_path_timestamp']
+    test_data = pd.concat([pd.DataFrame(i for i in test_data['Bssid']).astype(int),test_data['site_path_timestamp']], axis=1)
+    #print(test_data.iloc[:, :-1].astype(int))
 
     oof_x, oof_y, oof_f = np.zeros(data.shape[0]), np.zeros(data.shape[0]), np.zeros(data.shape[0])
     preds_x, preds_y = 0, 0
     preds_f_arr = np.zeros((test_data.shape[0], N_SPLITS))
 
+
     kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
-    for fold, (trn_idx, val_idx) in enumerate(kf.split(data.iloc[:, :-4])):
-        X_train = data.iloc[trn_idx, :-3]
+    for fold, (trn_idx, val_idx) in enumerate(kf.split(data.iloc[:, :-3])):
+        X_train = data.iloc[trn_idx, :-3].astype(int)
         y_trainx = data.iloc[trn_idx, -3]
         y_trainy = data.iloc[trn_idx, -2]
         y_trainf = data.iloc[trn_idx, -1]
 
-        X_valid = data.iloc[val_idx, :-3]
+        X_valid = data.iloc[val_idx, :-3].astype(int)
         y_validx = data.iloc[val_idx, -3]
         y_validy = data.iloc[val_idx, -2]
         y_validf = data.iloc[val_idx, -1]
 
-        print(y_trainx)
-        print(y_trainy)
-        print(y_trainf)
+
         modelx = lgb.LGBMRegressor(**lgb_params)
         with timer("fit X"):
             modelx.fit(X_train, y_trainx,
@@ -191,10 +193,11 @@ for n_files, file in enumerate(train_files):
         print(f"fold {fold}: mean position error {score}")
         score_df = score_log(score_df, n_files, os.path.basename(file), data.shape, fold, SEED, score)
 
+
     print("*+"*40)
     print(f"file #{n_files}, shape={data.shape}, name={os.path.basename(file)}")
     score = comp_metric(oof_x, oof_y, oof_f,
-                        data.iloc[:, -4].to_numpy(), data.iloc[:, -3].to_numpy(), data.iloc[:, -2].to_numpy())
+                        data.iloc[:, -3].to_numpy(), data.iloc[:, -2].to_numpy(), data.iloc[:, -1].to_numpy())
     oof.append(score)
     print(f"mean position error {score}")
     print("*+"*40)
@@ -207,12 +210,52 @@ for n_files, file in enumerate(train_files):
     test_preds.index = test_data["site_path_timestamp"]
     test_preds["floor"] = test_preds["floor"].astype(int)
     predictions.append(test_preds)
+    print(test_preds)
 
 
-for site, train, truth in gen-train:
-    fit_model_site(site, train, truth)
+
+# for site, train, truth in gen-train:
+#     fit_model_site(site, train, truth)
 
 # create file with results
 all_preds = pd.concat(predictions)
 all_preds = all_preds.reindex(subm.index)
 all_preds.to_csv('submission.csv')
+
+
+
+## Needed in load_data.py for this to work!
+#
+#
+# import os, pickle
+
+# def get_x_y_floor(truth_array):
+#     xs = list()
+#     ys = list()
+#     floors = list()
+#     for lst in truth_array:
+#         xs.append(lst[0])
+#         ys.append(lst[1])
+#         floors.append(lst[2])
+#     return xs,ys,floors
+
+# def gen_for_serialisation(path_to_train):
+#     site_data_files = [x for x in os.listdir(path_to_train)]
+#     for file in site_data_files:
+#         #../input/indoor-positioning-traindata/train_data
+#         f = open(path_to_train +'/'+file, "rb")
+#         site, train, ground = pickle.load(f)
+#         f.close()
+#         yield site,train,ground
+
+# def gen_for_serialisation_one_path(path_to_train):
+#         f = open(path_to_train, "rb")
+#         site, train, ground = pickle.load(f)
+#         f.close()
+#         return site,train,ground
+
+# def gen_for_serialisation_one_path_test(path_to_train):
+#         f = open(path_to_train, "rb")
+#         test = pickle.load(f)
+#         f.close()
+#         return test
