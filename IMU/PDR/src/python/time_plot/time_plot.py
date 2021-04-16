@@ -13,7 +13,7 @@ for data in iterator:
     num_count += 1
     i = 0
 
-    with open("../../../../../results/PDR/timing/" + data[0][0:len(data[0]) - 3] + ".csv", "w", newline = '') as file:
+    with open("../../../../../results/PDR/timing/" + data[0][0:len(data[0]) - 4] + ".csv", "w", newline = '') as file:
         writer = csv.writer(file)
         prev_time = data[1][0]
         writer.writerow(["i", "Time difference"])
