@@ -24,3 +24,5 @@ def compose_csv(header, dir, out_name):
 
                     writer.writerow(line.split(','))
 
+if __name__ == "__main__":
+    print("Hello, World!")
