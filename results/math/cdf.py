@@ -11,5 +11,5 @@ def plot(data, size, title, x_label):
     plt.ylabel("Distribution")
     plt.title(title)
     plt.plot(x, y, label = 'CDF', marker = 'o')
-    plt.savefig("./test.png")
+    plt.savefig("./" + title + ".png")
     plt.close()
