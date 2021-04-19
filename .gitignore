@@ -1,4 +1,3 @@
 IMU/PDR/lib/
 results/PDR/*
 !results/PDR/*.py
-results
