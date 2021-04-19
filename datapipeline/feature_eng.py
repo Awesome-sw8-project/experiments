@@ -17,6 +17,7 @@ def create_new_train(path_to_train, path_to_save):
     print("done")
 
 def normalise_value(x, min_val, max_val):
+    x = np.asarray(x).astype(np.int)
     return (x-min_val)/(max_val-min_val)
 
 
@@ -31,13 +32,13 @@ def min_max_normalise(p_t_train, p_t_test, site, save_train,save_test):
     new_train = [normalise_value(x, min_val,max_val) for x in train]
     with open("{}/{}.pickle".format(save_train,siteID),"wb") as f:
         pickle.dump((site,new_train,label), f)
+    
     #test data normalisation
     with open("{}/{}.pickle".format(p_t_test,site),"rb") as f:
         test_data = pickle.load(f)
-    test_data = np.asarray(test_data).astype(np.int)
-    n_test_data = [(normalise_value(feat, min_val,max_val), stamp) in (feat, stamp) in test_data]
+    n_test_data = [(normalise_value(feat, min_val,max_val), stamp) for (feat, stamp) in test_data]
     with open("{}/{}.pickl".format(save_test,site), "wb") as f:
-        pickle.dump(n_test_data)
+        pickle.dump(n_test_data, f)
     print("Feature Engineered for site: {}".format(site))
 
 def normalise_for_sites(pt_train, pt_test, save_train, save_test):
@@ -45,7 +46,5 @@ def normalise_for_sites(pt_train, pt_test, save_train, save_test):
     for site in sites:
         min_max_normalise(pt_train,pt_test, site,save_train,save_test)
 
-    
-
 if __name__ == "__main__":
-    pass
+    normalise_for_sites(pt_train, pt_test, save_tr, save_te)
