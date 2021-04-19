@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import csv
+import os
 
 # Composes all .csv files into one .csv file.
 # Ignores headers assuming all files have a header.
@@ -13,7 +14,7 @@ def compose_csv(header, dir, out_name):
         writer.writerow(header)
 
         for file in files:
-            with open(file, "r") as in_file:
+            with open(dir + "/" + file, "r") as in_file:
                 reader = csv.reader(in_file, delimiter = ',')
                 start = True
 
@@ -22,7 +23,7 @@ def compose_csv(header, dir, out_name):
                         start = False
                         continue
 
-                    writer.writerow(line.split(','))
+                    writer.writerow(line)
 
 if __name__ == "__main__":
-    print("Hello, World!")
+    compose_csv(["i", "Time difference"], "timing", "composed.csv")
