@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import csv
 import os
+import matplotlib.pyplot as plt
 
 # Composes all .csv files into one .csv file.
 # Ignores headers assuming all files have a header.
@@ -34,4 +35,6 @@ def compose_csv(header, dir, out_name, log_progress):
 if __name__ == "__main__":
     compose_csv(["i", "Time difference"], "timing", "composed.csv", True)
     timings = pd.read_csv("composed.csv")
-    boxplot = timings.boxplot(column = ["Time difference"])
+    plt.boxplot(list(timings['Time difference']), labels = ['Time difference'])
+    plt.savefig("boxplot.png")
+    os.remove("composed.csv")
