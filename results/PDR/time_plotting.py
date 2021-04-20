@@ -34,4 +34,4 @@ def compose_csv(header, dir, out_name, log_progress):
 if __name__ == "__main__":
     compose_csv(["i", "Time difference"], "timing", "composed.csv", True)
     timings = pd.read_csv("composed.csv")
-    boxplot = data.boxplot(column = ["Time difference"])
+    boxplot = timings.boxplot(column = ["Time difference"])
