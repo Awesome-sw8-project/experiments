@@ -27,3 +27,5 @@ def compose_csv(header, dir, out_name):
 
 if __name__ == "__main__":
     compose_csv(["i", "Time difference"], "timing", "composed.csv")
+    timings = pd.read_csv("composed.csv")
+    boxplot = data.boxplot(column = ["Time difference"])
