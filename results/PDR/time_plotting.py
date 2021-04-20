@@ -35,6 +35,6 @@ def compose_csv(header, dir, out_name, log_progress):
 if __name__ == "__main__":
     compose_csv(["i", "Time difference"], "timing", "composed.csv", True)
     timings = pd.read_csv("composed.csv")
-    plt.boxplot(list(timings['Time difference']), labels = ['Time difference'])
+    plt.boxplot(list(timings['Time difference']), labels = ['Time difference'], sym = '', autorange = True, patch_artist = True)
     plt.savefig("boxplot.png")
     os.remove("composed.csv")
