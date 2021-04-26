@@ -28,13 +28,7 @@ def site_files(prefixes):
 
 # Returns list of paths, one for each site.
 def __unique_site_files(files):
-    result = list()
-
-    for file in files:
-        if not __has_site(file, result):
-            result.append(file)
-
-    return result
+    return list(set(files))
 
 # Returns site ID from file name.
 def site_id(filename):
