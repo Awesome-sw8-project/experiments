@@ -20,23 +20,23 @@ def multi_delimiter(delimiter):
 def compose_csv(header, dir, file_type, delimiter, out_name, log_progress, skip_lines):
     files = [p for p in os.listdir(dir) if p.endswith("." + file_type)]
     count = 0
+    data = []
 
-    with open(out_name,  "w", newline = '') as out_file:
-        writer = csv.writer(out_file)
-        writer.writerow(header)
+    for file in files:
+        count += 1
 
-        for file in files:
-            count += 1
+        if log_progress:
+            print("Composing into " + out_name + ": " + str(int((count / len(files)) * 100)) + "%", end = '\r', flush = True)
+        
+        with open(dir + "/" + file, "r") as in_file:
+            reader = csv.reader(in_file, delimiter = multi_delimiter(delimiter))
 
-            if log_progress:
-                print("Composing into " + out_name + ": " + str(int((count / len(files)) * 100)) + "%", end = '\r', flush = True)
+            for i, line in enumerate(reader):
+                if i > skip_lines:
+                    data.append([line[0], line[-1]])
 
-            with open(dir + "/" + file, "r") as in_file:
-                reader = csv.reader(in_file, delimiter = multi_delimiter(delimiter))
-                
-                for i, line in enumerate(reader):
-                    if i > skip_lines:
-                        writer.writerow([str(line[0]), str(line[-1])])
+    df = pd.DataFrame(data, columns = header)
+    df.to_csv(out_name, index = False)
 
 if __name__ == "__main__":
     compose_csv(["i", "Time difference"], "timing", "csv", ',', "composed.csv", True)
