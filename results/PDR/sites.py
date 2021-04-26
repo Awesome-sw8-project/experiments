@@ -33,11 +33,3 @@ def __unique_site_files(files):
 # Returns site ID from file name.
 def site_id(filename):
     return filename[0:24]
-
-# Checks whether site is already present in list of files.
-def __has_site(site_file, site_files):
-    for file in site_files:
-        if site_id(site_file) == site_id(file):
-            return True
-
-    return False
