@@ -1,6 +1,7 @@
 import os,pickle, math
 import matplotlib.pyplot as plt, numpy as np
 import seaborn as sns, pandas as pd
+
 def unpickle_hist(path,file):
     with open("{path}/{file}".format(path=path,file=file), "rb") as f:
         hist = pickle.load(f)
@@ -41,10 +42,14 @@ def get_data2(hists, index):
     return loss/div,min_loss,max_loss, val_loss/div, v_min_loss,v_max_loss
 
 
-def visualise(path_results, site, path_to_save):
+def visualise(path_results, site, path_to_save, skip=0):
     files = [x for x in os.listdir(path_results) if x.split("_")[0] == site]
+    x_results = [i for i in files if i.split("_")[3].split(".")[0] == "xs"]
+    vis_helper(path_results, x_results, "{site}_x".format(site=site), "{path}/X".format(path=path_to_save), skip=skip)
     x_results = [i for i in files if i.split("_")[3].split(".")[0] == "ys"]
-    vis_helper(path_results, x_results, "{site}_y".format(site=site), "{path}/Y".format(path=path_to_save))
+    vis_helper(path_results, x_results, "{site}_y".format(site=site), "{path}/Y".format(path=path_to_save), skip=skip)
+    x_results = [i for i in files if i.split("_")[3].split(".")[0] == "floors"]
+    vis_helper(path_results, x_results, "{site}_floor".format(site=site), "{path}/Floor".format(path=path_to_save), skip=skip)
     
 def print_vl(path_results, site):
     files = [x for x in os.listdir(path_results) if x.split("_")[0] == site]
@@ -62,7 +67,7 @@ def v_l_helper(path, files):
         val_loss.append(vl)
     print("The loss is : {}\n The val loss is: {}".format(loss,val_loss))
 
-def vis_helper(path, files, title, saveto):
+def vis_helper(path, files, title, saveto, skip=0):
     hists = [unpickle_hist(path,x) for x in files]
     epochs = max([len(x["loss"]) for x in hists])
     
@@ -75,14 +80,14 @@ def vis_helper(path, files, title, saveto):
     epochs = [x for x in range(1,epochs+1)]
     #ax = plt.gca()
     #ax.ticklabel_format(axis='both', style='plain', useOffset=False)
-    plt.plot(epochs[1:], loss[1:], 'bo-', label="loss")
-    plt.plot(epochs[1:], val_loss[1:], 'go-', label="validation loss")
+    plt.plot(epochs[skip:], loss[skip:], 'bo-', label="loss")
+    plt.plot(epochs[skip:], val_loss[skip:], 'go-', label="validation loss")
     plt.xlabel("Epoch")
     plt.ylabel("Mean squared Error")
     plt.title(title)
     plt.legend()
-    print("loss : {}\n\nval_loss: {}".format(loss,val_loss))
-    print("\n\n\n\n")
+    #print("loss : {}\n\nval_loss: {}".format(loss,val_loss))
+    #print("\n\n\n\n")
     plt.savefig("{}/{}".format(saveto,title))
     plt.close()
 
@@ -121,12 +126,14 @@ def vis_helper2(path, files, title, saveto):
     plt.close()
 
 if "__main__" == __name__:
-    exit()
-    path = 'C:/Users/Abiram Mohanaraj/Desktop/data/NN/hist'
-    path_to_save = 'C:/Users/Abiram Mohanaraj/Desktop/data/results'
+    #path = 'C:/Users/Abiram Mohanaraj/Desktop/original NN exp/hist'
+    path = 'C:/Users/Abiram Mohanaraj/Desktop/NN-results/2.lr 001/hist'
+    path_to_save = 'C:/Users/Abiram Mohanaraj/Desktop/data/results3'
     sites = [x.split("_")[0] for x in os.listdir(path)]
     sites = list(set(sites))
-    for site in sites: 
+    for site in sites:
+        #if not site == '5da138764db8ce0c98bcaa46':
+        #    continue
         #print_vl(path, site)
         print(site)
-        visualise(path, site, path_to_save)
+        visualise(path, site, path_to_save, skip=0)
