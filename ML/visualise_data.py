@@ -126,9 +126,6 @@ def vis_helper2(path, files, title, saveto):
     plt.close()
 
 if "__main__" == __name__:
-    #path = 'C:/Users/Abiram Mohanaraj/Desktop/original NN exp/hist'
-    path = 'C:/Users/Abiram Mohanaraj/Desktop/NN-results/2.lr 001/hist'
-    path_to_save = 'C:/Users/Abiram Mohanaraj/Desktop/data/results3'
     sites = [x.split("_")[0] for x in os.listdir(path)]
     sites = list(set(sites))
     for site in sites:
