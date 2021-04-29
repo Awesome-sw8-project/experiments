@@ -20,6 +20,9 @@ class MLWrapper(Estimator):
         elif self.algorithm.lower() == "knn":
             return self.__knn_next_position(data)
 
+        elif self.algorithm.lower() == "lightgbm":
+            return self.__lightgbm_next_position(data)
+
     # ANN next position estimation.
     def __ann_next_position(self, data):
         pass
@@ -30,4 +33,8 @@ class MLWrapper(Estimator):
 
     # KNN next position estimation.
     def __knn_next_position(self, data):
+        pass
+
+    # LightGBM next position estimation.
+    def __lightgbm_next_position(self, data):
         pass
