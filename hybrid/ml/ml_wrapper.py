@@ -10,17 +10,21 @@ class MLWrapper(Estimator):
         self.label = algorithm_label
 
     # Estimates next position.
+    # Data might not contain appropriate RSSIs with values 0 or -999 depending on being normalized or not.
+    # In this case, None is returned.
+    # Argument data is on form [[<BSSID>, [{<RSSI_VALUES>}]]].
+    # Output is on form [<X>, <Y>, <Z>].
     def next_position(self, data):
-        if self.algorithm.lower() == "ann":
+        if self.label.lower() == "ann":
             return self.__ann_next_position(data)
 
-        elif self.algorithm.lower() == "rnn"
+        elif self.label.lower() == "rnn":
             return self.__rnn_next_position(data)
 
-        elif self.algorithm.lower() == "knn":
+        elif self.label.lower() == "knn":
             return self.__knn_next_position(data)
 
-        elif self.algorithm.lower() == "lightgbm":
+        elif self.label.lower() == "lightgbm":
             return self.__lightgbm_next_position(data)
 
     # ANN next position estimation.
