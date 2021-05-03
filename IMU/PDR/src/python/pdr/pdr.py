@@ -2,8 +2,6 @@ import math
 import time
 import threading
 import numpy as np
-from pdr import filter
-from pdr import util
 from pdr import step
 from ahrs.filters import Madgwick, Mahony, EKF
 from ahrs.common import Quaternion
