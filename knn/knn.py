@@ -4,9 +4,12 @@ from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt 
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 import pickle
 import math
 from random import randrange
+from statistics import mode
+from decimal import * 
 
 #sys.path.insert(os.path.join(os.path.dirname(file), '../datapipeline'))
 #from datapipeline import *
@@ -19,23 +22,34 @@ train = [[-999, 34, 36], [16, -999, 43], [26, -999, 43], [36, -999, 43], [46, -9
 # format: [x,y, floor]
 ground_truth = [[1, 2, 3], [11, 4, 7], [2, 4, 7], [3, 4, 7], [4, 4, 7], [5, 4, 7], [6, 4, 7], [7, 4, 7], [8, 4, 7], [9, 4, 7], [10, 4, 7]]
 
-def evaluate_algorithm(dataset, algorithm, n_folds, *args):
-	folds = cross_validation_split(dataset, n_folds)
+def cross_validation(train_set, n_folds, ground_truth, num_neighbors):
+	kfold = KFold(n_splits = n_folds, shuffle=True)
 	scores = list()
-	for fold in folds:
-		train_set = list(folds)
-		train_set.remove(fold)
-		train_set = sum(train_set, [])
-		test_set = list()
-		for row in fold:
-			row_copy = list(row)
-			test_set.append(row_copy)
-			row_copy[-1] = None
-		predicted = algorithm(train_set, test_set, *args)
-		actual = [row[-1] for row in fold]
-		accuracy = accuracy_metric(actual, predicted)
+
+	for train, test in kfold.split(train_set, ground_truth): 
+		
+		prediction = predict_regression(train_set[train], test, num_neighbors, ground_truth[train])
+		actual = [row[-1] for row in n_folds]
+		accuracy = accuracy_metric(actual, prediction)
 		scores.append(accuracy)
 	return scores
+		
+	# folds = cross_validation_split(dataset, n_folds)
+	# scores = list()
+	# for fold in folds:
+	# 	train_set = list(folds)
+	# 	train_set.remove(fold)
+	# 	train_set = sum(train_set, [])
+	# 	test_set = list()
+	# 	for row in fold:
+	# 		row_copy = list(row)
+	# 		test_set.append(row_copy)
+	# 		row_copy[-1] = None
+	# 	predicted = predict_regression(train_set, test_set, num_neighbors, ground_truth)
+	# 	actual = [row[-1] for row in fold]
+	# 	accuracy = accuracy_metric(actual, predicted)
+	# 	scores.append(accuracy)
+	# return scores
 
 def cross_validation_split(dataset, n_folds):
 	dataset_split = list()
@@ -49,12 +63,6 @@ def cross_validation_split(dataset, n_folds):
 		dataset_split.append(fold)
 	return dataset_split
 
-def predict_classification(train, row, num_neighbors): 
-    neighbors = closest_neighbors(5, train, train[0])
-    output = [row[-1] for row in neighbors]
-    #prediction = max(set(output), key=output.count)
-    return prediction
-
 def accuracy_metric(actual, predicted):
 	correct = 0
 	for i in range(len(actual)):
@@ -62,19 +70,37 @@ def accuracy_metric(actual, predicted):
 			correct += 1
 	return correct / float(len(actual)) * 100.0
 
+def predict_regression(train, row, num_neighbors, ground_truth):
+	neighbors = closest_neighbors(5, train, ground_truth, train[0])
+	x = list()
+	y = list()
+	floor = list()
+	prediction = list()
+
+	for neighbor in neighbors:
+		x.append(neighbor[0])
+		y.append(neighbor[1])
+		floor.append(neighbor[2])
+	
+	prediction.append(sum(x) / len(x))
+	prediction.append(sum(y) / len(y))
+	prediction.append(mode(floor))
+	
+	return prediction
+
 def closest_neighbors(num_neighbors, train, ground_truth, row):
-    distances = list()
+	distances = list()
 	array_number = list()
-    for train_row in train:
-        dist = euclidean_distance(row, train_row)
-        distances.append((train_row, dist))
-    distances.sort(key=lambda tup: tup[1])
-    neighbors = list()
-    for i in range(num_neighbors):
-        neighbors.append(distances[i][0])
-    return neighbors
-
-
+	i = 0
+	for train_row in train:
+		dist = euclidean_distance(row, train_row)
+		distances.append((ground_truth[i], dist))
+		i = i+1
+	distances.sort(key=lambda tup: tup[1])
+	neighbors = list()
+	for i in range(num_neighbors):
+		neighbors.append(distances[i][0])
+	return neighbors
 
 def euclidean_distance(row1, row2):
     distance = 0.0
@@ -92,10 +118,15 @@ def minkowski_distance(row1, row2):
 f = open('./5a0546857ecc773753327266.pickle', "rb")
 site, train, ground = pickle.load(f)
 f.close
+#train_dict = {}
 
 
-predict = predict_classification(train, train[1], 3)
-print('Expected %s, Got %s.' % (train[0], predict))
+#train_dict = dict(enumerate(train.flatten(), enumerate(ground.flatten()))
+prediction = predict_regression(train, train[1], 3, ground)
+scores = cross_validation(train, 10, predict_regression, ground)
+print(prediction)
+#evaluate_algorithm(train, )
+#print('Expected %s, Got %s.' % (train[0], predict))
 n_folds = 5
 #num_neighbors = 5
 #scores = evaluate_algorithm(train, 5, n_folds, num_neighbors)
