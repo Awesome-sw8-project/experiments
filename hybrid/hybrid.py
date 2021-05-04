@@ -64,5 +64,6 @@ class AverageHybrid(Hybrid):
 
             if (self.estimate_count > self.recal_limit):
                 self.pdr = p.AHRSPDR(p.Location(ml_pos[0], ml_pos[1]), heading_type = self.heading_type)
+                self.estimate_count = 0
 
         return [avg_x, avg_y, self.last_floor]
