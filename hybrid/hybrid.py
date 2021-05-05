@@ -11,7 +11,7 @@ class Hybrid(ml.Estimator):
         self.ml = ml.MLWrapper(ml_algorithm, algorithm_label)
 
     # Re-calibrates PDR.
-    def __pdr_recalibrate(self, location):
+    def pdr_recalibrate(self, location):
         self.pdr = p.AHRSPDR(location, self.heading_type)
 
     # Abstract method for position estimation.
@@ -22,12 +22,29 @@ class Hybrid(ml.Estimator):
 
 # Hybrid estimator using ML as primary and PDR as support.
 class MLPDRHybrid(Hybrid):
-    def __init__(self):
-        pass
+    def __init__(self, start_location, ml_algorithm, algorithm_label):
+        super().__init__(start_location, ml_algorithm, algorithm_label)
+        self.last_position = start_location
+        self.using_pdr = False
 
+    # TODO: Maybe we should let PDR run for a minimum number of measurements.
+    # TODO: Check BSSID is usable by the SA algorithms (in ML wrapper).
     # Main entry for estimating position.
     def next_position(self, imu_data, antenna_data):
-        pass
+        ml_pos = self.ml.next_position(antenna_data)
+
+        if (ml_pos == None):
+            if (not self.using_pdr):
+                self.pdr_realibrate(self.last_position[0], self.last_position[1])
+
+            self.using_pdr = True
+            imu_pos = self.pdr.get_current_location(imu_data[0], imu_data[1], imu_data[2], imu_data[3])
+            self.last_position = [imu_pos.get_x(), imu_pos.get_y(), self.last_position[2]]
+
+            return self.last_position
+
+        self.last_position = ml_pos
+        return ml_pos
 
 # Hybrid estimator using PDR as primary and ML as support.
 class PDRMLHybrid(Hybrid):
@@ -63,7 +80,7 @@ class AverageHybrid(Hybrid):
             self.last_floor = ml_pos[2]
 
             if (self.estimate_count > self.recal_limit):
-                self.pdr = p.AHRSPDR(p.Location(ml_pos[0], ml_pos[1]), heading_type = self.heading_type)
+                self.pdr_recalibrate(p.Location(ml_pos[0], ml_pos[1]))
                 self.estimate_count = 0
 
         return [avg_x, avg_y, self.last_floor]
