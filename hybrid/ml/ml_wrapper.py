@@ -29,7 +29,7 @@ class MLWrapper(Estimator):
 
     # ANN next position estimation.
     def __ann_next_position(self, data):
-        pass
+        return self.algorithm.next_position()
 
     # RNN next position estimation.
     def __rnn_next_position(self, data):
