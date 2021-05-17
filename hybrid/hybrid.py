@@ -2,6 +2,10 @@ import ml.ml_wrapper as ml
 import sys
 sys.path.append("../IMU/PDR/src/python")
 import pdr.pdr as p
+sys.path.append("..")
+import evaluation.evaluator as evaluator, evaluation.eval_output as eo
+sys.path.append("..")
+import datapipeline.datapipeline as pipe
 
 # Base class of hybrid position estimators.
 class Hybrid(ml.Estimator):
@@ -99,3 +103,6 @@ class AverageHybrid(Hybrid):
                 self.estimate_count = 0
 
         return [avg_x, avg_y, self.last_floor]
+
+if __name__ == "__main":
+    pass
