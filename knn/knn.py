@@ -20,10 +20,6 @@ import numpy as np
 
 from load_data import get_x_y_floor, gen_for_serialisation, get_data_for_test
 
-pt_testset= ''
-path_to_save =''
-path_to_train = ""
-path_to_sample = ""
 # we use data pipeline to retrieve RSSID values
 training = [[-999, 34, 36], [16, -999, 43], [26, -999, 43], [36, -999, 43], [46, -999, 43], [56, -999, 43], [66, -999, 43], [76, -999, 43], [86, -999, 43], [96, -999, 43], [106, -999, 43]]
 # we use data pipeline to then retrieve the ground truth data corresponding to the train array
@@ -44,34 +40,6 @@ def cross_validation(train_set, n_folds, ground_truth, num_neighbors):
 		print(1/range(len(actual)) * sum(scores))
 	return scores
 		
-	# folds = cross_validation_split(dataset, n_folds)
-	# scores = list()
-	# for fold in folds:
-	# 	train_set = list(folds)
-	# 	train_set.remove(fold)
-	# 	train_set = sum(train_set, [])
-	# 	test_set = list()
-	# 	for row in fold:
-	# 		row_copy = list(row)
-	# 		test_set.append(row_copy)
-	# 		row_copy[-1] = None
-	# 	predicted = predict_regression(train_set, test_set, num_neighbors, ground_truth)
-	# 	actual = [row[-1] for row in fold]
-	# 	accuracy = accuracy_metric(actual, predicted)
-	# 	scores.append(accuracy)
-	# return scores
-
-# def cross_validation_split(dataset, n_folds):
-# 	dataset_split = list()
-# 	dataset_copy = list(dataset)
-# 	fold_size = int(len(dataset) / n_folds)
-# 	for _ in range(n_folds):
-# 		fold = list()
-# 		while len(fold) < fold_size:
-# 			index = randrange(len(dataset_copy))
-# 			fold.append(dataset_copy.pop(index))
-# 		dataset_split.appenad(fold)
-# 	return dataset_split
 
 def accuracy_metric(actual, predicted):
 	for i in range(len(actual)-1):
