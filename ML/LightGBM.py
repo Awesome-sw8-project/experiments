@@ -17,6 +17,7 @@ import time
 import sys
 import math
 from contextlib import contextmanager
+import joblib
 
 from load_data import *
 
@@ -59,7 +60,7 @@ def set_seed(seed=42):
     
 def comp_metric(xhat, yhat, fhat, x, y, f):
     intermediate = np.sqrt(np.power(xhat-x, 2) + np.power(yhat-y, 2)) + 15 * np.abs(fhat-f)
-    return intermediate.sum()/xhat.shape[0]
+    return intermediate.sum() / xhat.shape[0]
 
 
 def score_log(df: pd.DataFrame, num_files: int, nam_file: str, data_shape: tuple, n_fold: int, seed: int, mpe: float):
@@ -145,6 +146,9 @@ if __name__ == '__main__':
         preds_x, preds_y = 0, 0
         preds_f_arr = np.zeros((test_data.shape[0], N_SPLITS))
 
+        new_x = False
+        new_y = False
+        new_f = False
 
         kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
         for fold, (trn_idx, val_idx) in enumerate(kf.split(data.iloc[:, :-3])):
@@ -157,8 +161,10 @@ if __name__ == '__main__':
             y_validx = data.iloc[val_idx, -3]
             y_validy = data.iloc[val_idx, -2]
             y_validf = data.iloc[val_idx, -1]
+            
 
-            if not(os.path.exists(f'LightGBM_models/{n_files}modelx.txt')):
+            if new_x or not(os.path.exists(f'LightGBM_models/{n_files}modelx.txt')):
+                new_x = True
                 modelx = lgb.LGBMRegressor(**lgb_params)
                 with timer("fit X"):
                     modelx.fit(X_train, y_trainx,
@@ -167,12 +173,12 @@ if __name__ == '__main__':
                                verbose=False,
                                early_stopping_rounds=20
                                )
-                    
                 modelx.booster_.save_model(f'LightGBM_models/{n_files}modelx.txt')
             else:
                 modelx = lgb.Booster(model_file=f'LightGBM_models/{n_files}modelx.txt')
 
-            if not(os.path.exists(f'LightGBM_models/{n_files}modely.txt')):
+            if new_y or not(os.path.exists(f'LightGBM_models/{n_files}modely.txt')):
+                new_y = True
                 modely = lgb.LGBMRegressor(**lgb_params)
                 with timer("fit Y"):
                     modely.fit(X_train, y_trainy,
@@ -181,12 +187,12 @@ if __name__ == '__main__':
                                verbose=False,
                                early_stopping_rounds=20
                                )
-                    
                 modely.booster_.save_model(f'LightGBM_models/{n_files}modely.txt')
             else:
                 modely = lgb.Booster(model_file=f'LightGBM_models/{n_files}modely.txt')
 
-            if not(os.path.exists(f'LightGBM_models/{n_files}modelf.txt')):
+            if new_f or not(os.path.exists(f'LightGBM_models/{n_files}modelf.txt')):
+                new_f = True
                 modelf = lgb.LGBMClassifier(**lgb_f_params)
                 with timer("fit F"):
                     modelf.fit(X_train, y_trainf,
@@ -195,10 +201,10 @@ if __name__ == '__main__':
                                verbose=False,
                                early_stopping_rounds=20
                                )
-                    
-                modelf.booster_.save_model(f'LightGBM_models/{n_files}modelf.txt')
+                joblib.dump(modelf, f'LightGBM_models/{n_files}modelf.txt')
             else:
-                modelf = lgb.Booster(model_file=f'LightGBM_models/{n_files}modelf.txt')
+                modelf = joblib.load(f'LightGBM_models/{n_files}modelf.txt')
+                
 
             oof_x[val_idx] = modelx.predict(X_valid)
             oof_y[val_idx] = modely.predict(X_valid)
