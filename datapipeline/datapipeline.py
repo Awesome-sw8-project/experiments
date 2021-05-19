@@ -2,7 +2,7 @@ import pandas as pd, os, json, gc, numpy as np, pickle
 from collections import Counter
 
 #added for backward compatibility
-from imu_pipe import imu_data, lowest_waypoint
+from datapipeline.imu_pipe import imu_data, lowest_waypoint, filter_files
 
 train_path = ''
 path_to_s_subm = ""
@@ -17,7 +17,9 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
     files = filter_files(files, get_sites_from_sample(path_to_s_subm))
 
     for file in files:
-        index = get_site_index(rssi_type, site, site_files, data_path, path_to_test, 1000)
+        site = file.split("_")[0]
+        site_files = [p for p in files if p.startswith(site)]
+        index = get_site_index(rssi_type, site, site_files, filepath, path_to_test, 1000)
 
         with open("{}/{}.pickle".format(path_to_site_index, site), "wb") as pf:
             pickle.dump(index, pf)
@@ -58,7 +60,7 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
         df_imu[0] = df_imu[0].apply(lambda x: int(x))
         df_imu[2] = df_imu[2].apply(lambda x: float(x))
         df_imu[3] = df_imu[3].apply(lambda x: float(x))
-        df_imu[4] = df_imu[4].apply(lambda x: float(x)
+        df_imu[4] = df_imu[4].apply(lambda x: float(x))
         df_wifi[0] = df_wifi[0].apply(lambda x: int(x))
         grouped_imu = df_imu.groupby(0)
         grouped_wifi = df_imu.groupby(0)
