@@ -2,12 +2,94 @@ import pandas as pd, os, json, gc, numpy as np, pickle
 from collections import Counter
 
 #added for backward compatibility
-from imu_pipe import imu_data
+from imu_pipe import imu_data, lowest_waypoint
 
 train_path = ''
 path_to_s_subm = ""
 path_to_test = ''
 path_to_indices = ''
+
+# Hybrid pipeline.
+# Stream element format: [<FILANAME>, [start_x, start_y],
+#               [[<TIMESTAMP>, [x,y,floor], [acc_x, acc_y, acc_z], [mag_x, mag_y, mag_z], [gyro_x, gyro_y, gyro_z]], [<WIFI_FEATURES>]]]
+def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_test):
+    files = [p for p in os.listdir(filepath) if p.endswith(".txt")]
+    files = filter_files(files, get_sites_from_sample(path_to_s_subm))
+
+    for file in files:
+        index = get_site_index(rssi_type, site, site_files, data_path, path_to_test, 1000)
+
+        with open("{}/{}.pickle".format(path_to_site_index, site), "wb") as pf:
+            pickle.dump(index, pf)
+
+        with open(filepath + '/' + file, "r") as f:
+            imu = list()
+            waypoints = list()
+            imu_features = list()
+            wifi = list()
+
+            for line in f:
+                if len(line) > 0 and line[0] == "#":
+                    continue
+
+                split = line.split("\t")
+
+                if len(split) > 1 and (split[1] == "TYPE_ACCELEROMETER" or split[1] == "TYPE_MAGNETIC_FIELD" or split[1] == "TYPE_GYROSCOPE"):
+                    imu.append([split[0], split[1], split[2], split[3], split[4]])
+
+                elif len(split)>  1 and split[1] == rssi_type:
+                    wifi.append([split[0], split[2], split[3], split[4]])
+
+                elif len(split) > 1 and split[1] == "TYPE_WAYPOINT":
+                    fwps = split[2:]
+
+                    for wpt in fwpts:
+                        wpt_data = wpt.split(",")
+                        waypoints.append([int(wpt_data[0]), float(wpt_data[1]), float(wpt_data[2]), float(wpt_data[3])])
+
+        if imu == [] and wifi == []:
+            yield list()
+
+        df_imu = pd.DataFrame(imu)
+        df_wifi = pd.DataFrame(wifi)
+        del imu
+        del wifi
+        gc.collect()
+        df_imu[0] = df_imu[0].apply(lambda x: int(x))
+        df_imu[2] = df_imu[2].apply(lambda x: float(x))
+        df_imu[3] = df_imu[3].apply(lambda x: float(x))
+        df_imu[4] = df_imu[4].apply(lambda x: float(x)
+        df_wifi[0] = df_wifi[0].apply(lambda x: int(x))
+        grouped_imu = df_imu.groupby(0)
+        grouped_wifi = df_imu.groupby(0)
+        start_x, start_y = lowest_waypoint(waypoints)
+
+        for time_stamp, group in grouped_imu:
+            nearest_wp = find_nearest_wp_index(waypoints, time_stamp)
+            group = group.drop_duplicates(subset = 1)
+
+            x = float(waypoints[nearest_wp][2])
+            y = float(waypoints[nearest_wp][3])
+            floor = int(waypoints[nearest_wp][1])
+
+            if (len(group.loc[group[1]=="TYPE_ACCELEROMETER"].values) == 0 or
+                    len(group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].values) == 0 or
+                    len(group.loc[group[1]=="TYPE_GYROSCOPE"].values) == 0):
+                continue
+
+            acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].values[0][2:5]
+            mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].values[0][2:5]
+            gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].values[0][2:5]
+            imu_features.append([time_stamp, [x, y, floor], acc_feat, mag_feat, gyro_feat])
+
+        for time_stamp, group in grouped_wifi:
+            group = group.drop_duplicates(subset = 2)
+            temp = group.iloc[:,2:4]
+            feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
+            feat = feat.transpose()
+            wifi_features.append(feat.values[0])
+
+        yield [file, [start_x, start_y], imu_features, wifi_features]
 
 def get_sites_from_sample(path_to_sample):
     sub_df = pd.read_csv(path_to_sample)
