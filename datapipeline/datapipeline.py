@@ -96,6 +96,9 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
             if (str(time_stamp) in time_to_features):
                 time_to_features[str(time_stamp)].append(feat.values[0])
 
+            else:
+                time_to_features[str(time_stampe)] = [[], [], feat.values[0]]
+
         yield [file, [start_x, start_y], time_to_features]
 
 def get_sites_from_sample(path_to_sample):
