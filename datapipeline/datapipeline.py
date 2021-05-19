@@ -25,8 +25,9 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
         with open(filepath + '/' + file, "r") as f:
             imu = list()
             waypoints = list()
-            imu_features = list()
+            #imu_features = list()
             wifi = list()
+            #wifi_features = list()
 
             for line in f:
                 if len(line) > 0 and line[0] == "#":
@@ -64,6 +65,8 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
         grouped_wifi = df_imu.groupby(0)
         start_x, start_y = lowest_waypoint(waypoints)
 
+        time_to_features = {}
+
         for time_stamp, group in grouped_imu:
             nearest_wp = find_nearest_wp_index(waypoints, time_stamp)
             group = group.drop_duplicates(subset = 1)
@@ -80,16 +83,21 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
             acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].values[0][2:5]
             mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].values[0][2:5]
             gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].values[0][2:5]
-            imu_features.append([time_stamp, [x, y, floor], acc_feat, mag_feat, gyro_feat])
+            #imu_features.append([time_stamp, [x, y, floor], acc_feat, mag_feat, gyro_feat])
+            time_to_features[str(time_stamp)] = [[x, y, floor], [acc_feat, mag_feat, gyro_feat]]
 
         for time_stamp, group in grouped_wifi:
             group = group.drop_duplicates(subset = 2)
             temp = group.iloc[:,2:4]
             feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
             feat = feat.transpose()
-            wifi_features.append(feat.values[0])
+            #wifi_features.append(feat.values[0])
 
-        yield [file, [start_x, start_y], imu_features, wifi_features]
+            if (time_to_features.has_key(str(time_stamp)))
+                time_to_features[str(timestamp)].append(feat.values[0])
+
+        #yield [file, [start_x, start_y], imu_features, wifi_features]
+        yield [file, [start_x, start_y], time_to_features]
 
 def get_sites_from_sample(path_to_sample):
     sub_df = pd.read_csv(path_to_sample)
@@ -110,7 +118,7 @@ def test_bssids(to_test, site):
     files = [f for f in os.listdir(to_test) if f.split("_")[0]==site]
     bssid_list = list()
     for file in files:
-        with open("{}/{}".format(to_test,file), "r") as f:
+        with open("{}/{}".format(to_test,file), "r", errors = 'ignore') as f:
             data = f.readlines()
         for line in data:
             splits = line.split("\t")
