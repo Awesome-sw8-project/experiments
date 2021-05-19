@@ -11,7 +11,7 @@ path_to_indices = ''
 
 # Hybrid pipeline.
 # Stream element format: [<FILANAME>, [start_x, start_y],
-#               [[<TIMESTAMP>, [x,y,floor], [acc_x, acc_y, acc_z], [mag_x, mag_y, mag_z], [gyro_x, gyro_y, gyro_z]], [<WIFI_FEATURES>]]]
+#                         <TIMESTAMP> -> [[x,y,floor], [acc_x, acc_y, acc_z], [mag_x, mag_y, mag_z], [gyro_x, gyro_y, gyro_z], [<WIFI_FEATURES>]]
 def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_test):
     files = [p for p in os.listdir(filepath) if p.endswith(".txt")]
     files = filter_files(files, get_sites_from_sample(path_to_s_subm))
@@ -24,12 +24,10 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
         with open("{}/{}.pickle".format(path_to_site_index, site), "wb") as pf:
             pickle.dump(index, pf)
 
-        with open(filepath + '/' + file, "r") as f:
+        with open(filepath + '/' + file, "r", errors = 'ignore') as f:
             imu = list()
             waypoints = list()
-            #imu_features = list()
             wifi = list()
-            #wifi_features = list()
 
             for line in f:
                 if len(line) > 0 and line[0] == "#":
@@ -44,7 +42,7 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
                     wifi.append([split[0], split[2], split[3], split[4]])
 
                 elif len(split) > 1 and split[1] == "TYPE_WAYPOINT":
-                    fwps = split[2:]
+                    fwpts = split[2:]
 
                     for wpt in fwpts:
                         wpt_data = wpt.split(",")
@@ -70,6 +68,7 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
         time_to_features = {}
 
         for time_stamp, group in grouped_imu:
+            time_to_features[str(time_stamp)] = []
             nearest_wp = find_nearest_wp_index(waypoints, time_stamp)
             group = group.drop_duplicates(subset = 1)
 
@@ -85,20 +84,18 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
             acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].values[0][2:5]
             mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].values[0][2:5]
             gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].values[0][2:5]
-            #imu_features.append([time_stamp, [x, y, floor], acc_feat, mag_feat, gyro_feat])
-            time_to_features[str(time_stamp)] = [[x, y, floor], [acc_feat, mag_feat, gyro_feat]]
+            time_to_features[str(time_stamp)].append([x, y, floor])
+            time_to_features[str(time_stamp)].append([acc_feat, mag_feat, gyro_feat])
 
         for time_stamp, group in grouped_wifi:
             group = group.drop_duplicates(subset = 2)
             temp = group.iloc[:,2:4]
             feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
             feat = feat.transpose()
-            #wifi_features.append(feat.values[0])
 
-            if (time_to_features.has_key(str(time_stamp)))
-                time_to_features[str(timestamp)].append(feat.values[0])
+            if (str(time_stamp) in time_to_features):
+                time_to_features[str(time_stamp)].append(feat.values[0])
 
-        #yield [file, [start_x, start_y], imu_features, wifi_features]
         yield [file, [start_x, start_y], time_to_features]
 
 def get_sites_from_sample(path_to_sample):
