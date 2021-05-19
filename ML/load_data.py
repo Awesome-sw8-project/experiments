@@ -24,3 +24,15 @@ def get_data_for_test(pt_test,site):
     with open("{pt_test}/{site}.pickle".format(pt_test=pt_test,site=site), "rb") as f:
         test_data = pickle.load(f)
     return test_data
+
+def gen_for_serialisation_one_path(path_to_train):
+        f = open(path_to_train, "rb")
+        site, train, ground = pickle.load(f)
+        f.close()
+        return site,train,ground
+
+def gen_for_serialisation_one_path_test(path_to_train):
+        f = open(path_to_train, "rb")
+        test = pickle.load(f)
+        f.close()
+        return test
