@@ -15,6 +15,7 @@ path_to_indices = ''
 def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_test):
     files = [p for p in os.listdir(filepath) if p.endswith(".txt")]
     files = filter_files(files, get_sites_from_sample(path_to_s_subm))
+    files = files[round(0.5 * len(files)):]
 
     for file in files:
         site = file.split("_")[0]
