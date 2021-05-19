@@ -1,3 +1,5 @@
+# Need a input folder in the root folder with the data without min max
+# Need a folder called LightGBM_models for the models
 # ------------------------------------------------------------------------------
 # Import libraries
 # ------------------------------------------------------------------------------
