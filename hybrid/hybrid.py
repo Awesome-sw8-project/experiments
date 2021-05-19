@@ -105,4 +105,29 @@ class AverageHybrid(Hybrid):
         return [avg_x, avg_y, self.last_floor]
 
 if __name__ == "__main":
-    pass
+    iter = dp.get_all("../../data/data/train", "TYPE_WIFI", "../../data/data/sample_submission.csv", "/index", "../../data/data/test")
+
+    for site in iter:
+        for path_data in site[1]:
+            ground_truths = list()
+            hybrid = MLPDRHybrid(p.Location(path_data[1][0], path_data[1][1]), None, "lightgbm")
+            time_mapping = path_data[2]
+            keys = list(time_mapping.keys())
+
+            for timestamp in keys:
+                if (time_mapping[timestamp][0] == []):      # In case we don't have ground truth.
+                    continue
+
+                ground_truths.append(time_mapping[timestamp][0])
+                accelerator = time_mapping[timestamp][1][0]
+                gyrscope = time_mapping[timestamp][1][2]
+                magnometer = time_mapping[timestamp][1][1]
+                rssi = None
+
+                if (len(time_mapping[timestamp]) < 3):
+                    rssi = []
+
+                else:
+                    rssi = time_mapping[timestamp][2]
+
+                pos = hybrid.next_position([int(timestamp), accelerator, magnometer, gyroscope], rssi)
