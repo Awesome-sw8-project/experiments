@@ -278,6 +278,16 @@ def test_feats_pickled(rssi_type, path_to_s_subm,path_to_test, path_to_indices, 
             pickle.dump(feats,f)
 
 if __name__ == "__main__":
+    train_path = ''
+    path_to_s_subm = ""
+    path_to_test = ''
+    path_to_indices = ''
+    path_to_save_train = ''
+    gen = get_all(train_path,"TYPE_WIFI", path_to_s_subm, path_to_indices, path_to_test)
+    for site, site_data in gen:
+        with open("{}/{}.pickle".format(path_to_save_train,site),"wb") as f:
+            pickle.dump((site,site_data),f)
+
     #train_gen = rssi_features("TYPE_WIFI",train_path, path_to_s_subm, path_to_indices, path_to_test)
     #for site, train, labels in train_gen:
     #    with open("{site}.pickle".format(site=site), "wb") as f:
