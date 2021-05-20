@@ -104,8 +104,8 @@ class AverageHybrid(Hybrid):
 
         return [avg_x, avg_y, self.last_floor]
 
-if __name__ == "__main":
-    iter = dp.get_all("../../data/data/train", "TYPE_WIFI", "../../data/data/sample_submission.csv", "/index", "../../data/data/test")
+if __name__ == "__main__":
+    iter = pipe.get_all("../../data/data/train", "TYPE_WIFI", "../../data/data/sample_submission.csv", ".", "../../data/data/test")
 
     for site in iter:
         for path_data in site[1]:
@@ -131,3 +131,4 @@ if __name__ == "__main":
                     rssi = time_mapping[timestamp][2]
 
                 pos = hybrid.next_position([int(timestamp), accelerator, magnometer, gyroscope], rssi)
+                print(timestamp)
