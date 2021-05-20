@@ -7,6 +7,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
+sys.path.insert(0,"../")
 from load_data import get_x_y_floor, gen_for_serialisation, get_data_for_test
 
 #change this according to model
