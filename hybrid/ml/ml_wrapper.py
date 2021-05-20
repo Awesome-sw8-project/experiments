@@ -1,3 +1,5 @@
+from ml.lightgbm_wrapper import LightGBMWrapper
+
 # Position estimation interface.
 class Estimator:
     def next_position(self, data):
@@ -5,14 +7,13 @@ class Estimator:
 
 # Wrapper of ML algorithms used in this project.
 class MLWrapper(Estimator):
-    def __init__(self, ml_algorithm, algorithm_label):
-        self.algorithm = ml_algorithm
+    def __init__(self, algorithm_label):
         self.label = algorithm_label
 
     # Estimates next position.
     # Data might not contain appropriate RSSIs with values 0 or -999 depending on being normalized or not.
     # In this case, None is returned.
-    # Argument data is on form [[<BSSID>, [{<RSSI_VALUES>}]]].
+    # Argument data is a list of RSSI values.
     # Output is on form [<X>, <Y>, <Z>].
     def next_position(self, data):
         if self.label.lower() == "ann":
@@ -39,6 +40,7 @@ class MLWrapper(Estimator):
     def __knn_next_position(self, data):
         pass
 
+    # TODO: Handle when an estimation is not possible.
     # LightGBM next position estimation.
     def __lightgbm_next_position(self, data):
-        pass
+        return LightGBMWrapper.predict(data, 0)

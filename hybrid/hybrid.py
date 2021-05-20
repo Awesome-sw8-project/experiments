@@ -110,7 +110,7 @@ if __name__ == "__main__":
     for site in iter:
         for path_data in site[1]:
             ground_truths = list()
-            hybrid = MLPDRHybrid(p.Location(path_data[1][0], path_data[1][1]), None, "lightgbm")
+            hybrid = MLPDRHybrid(p.Location(path_data[1][0], path_data[1][1]), "lightgbm")
             time_mapping = path_data[2]
             keys = list(time_mapping.keys())
 
