@@ -166,7 +166,7 @@ def get_site_index(rssi_type,siteID, site_files, data_path, path_to_test_set, oc
     return list(set(bssid))
 
 #returns training data and ground truth for a site.
-def rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test):
+def rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test, getfirsthalf=False, getSecondHalf=False):
     wifi_features = list()
     ground_truth = list()
     
@@ -174,7 +174,12 @@ def rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, 
     index = get_site_index(rssi_type, site, site_files, data_path,path_to_test, 1000)
     with open("{}/{}.pickle".format(path_to_site_index, site), "wb") as f:
         pickle.dump(index, f)
-    for path in site_files:
+    site_file_to_iterate = site_files
+    if getfirsthalf:
+        site_file_to_iterate = site_files[round(0.5 * len(site_files)):]
+    elif getSecondHalf:
+        site_file_to_iterate = site_files[:round(0.5 * len(site_files))]
+    for path in site_file_to_iterate:
         waypoints = list()
         wifi = list()
         #error are set to ignore as some special chars do not have utf-8 encoding.
@@ -231,7 +236,7 @@ def rssi_features(rssi_type, data_path, path_to_s_subm, path_to_site_index, path
     files = [p for p in os.listdir(data_path) if p.endswith(".txt")]
     for site in sites:
         site_files = [p for p in files if p.startswith(site)]
-        train_data, ground_truth = rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test)
+        train_data, ground_truth = rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test, getfirsthalf=False, getSecondHalf=False)
         yield  site, train_data, ground_truth
 
 #returns training data and ground truth for a site.
