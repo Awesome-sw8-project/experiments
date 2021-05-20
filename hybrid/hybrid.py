@@ -9,10 +9,10 @@ import datapipeline.datapipeline as pipe
 
 # Base class of hybrid position estimators.
 class Hybrid(ml.Estimator):
-    def __init__(self, start_location, ml_algorithm, algorithm_label):
+    def __init__(self, start_location, algorithm_label):
         self.heading_type = "madgwick"
         self.pdr = p.AHRSPDR(start_location, heading_type = self.heading_type)
-        self.ml = ml.MLWrapper(ml_algorithm, algorithm_label)
+        self.ml = ml.MLWrapper(algorithm_label)
 
     # Re-calibrates PDR.
     def pdr_recalibrate(self, location):
@@ -26,8 +26,8 @@ class Hybrid(ml.Estimator):
 
 # Hybrid estimator using ML as primary and PDR as support.
 class MLPDRHybrid(Hybrid):
-    def __init__(self, start_location, ml_algorithm, algorithm_label):
-        super().__init__(start_location, ml_algorithm, algorithm_label)
+    def __init__(self, start_location, algorithm_label):
+        super().__init__(start_location, algorithm_label)
         self.last_position = start_location
         self.using_pdr = False
 
@@ -52,8 +52,8 @@ class MLPDRHybrid(Hybrid):
 
 # Hybrid estimator using PDR as primary and ML as support.
 class PDRMLHybrid(Hybrid):
-    def __init__(self, start_location, ml_algorithm, algorithm_label):
-        super().__init__(start_location, ml_algorithm, algorithm_label)
+    def __init__(self, start_location, algorithm_label):
+        super().__init__(start_location, algorithm_label)
         self.pdr_measurement_count = 0
         self.recal_limit = 350
         self.latest_ml_pos = [0, 0, 0]
@@ -76,8 +76,8 @@ class PDRMLHybrid(Hybrid):
 
 # Hybrid estimator using both PDR and ML for averaging estimations.
 class AverageHybrid(Hybrid):
-    def __init__(self, start_location, ml_algorithm, algorithm_label, recalibrate_limit):
-        super().__init__(start_location, ml_algorithm, algorithm_label)
+    def __init__(self, start_location, algorithm_label, recalibrate_limit):
+        super().__init__(start_location, algorithm_label)
         self.last_floor = 0
         self.recal_limit = recalibrate_limit
         self.estimate_count = 0
