@@ -2,12 +2,105 @@ import pandas as pd, os, json, gc, numpy as np, pickle
 from collections import Counter
 
 #added for backward compatibility
-from imu_pipe import imu_data
+from datapipeline.imu_pipe import imu_data, lowest_waypoint, filter_files
 
 train_path = ''
 path_to_s_subm = ""
 path_to_test = ''
 path_to_indices = ''
+
+# Hybrid pipeline.
+# Stream element format: [<FILANAME>, [start_x, start_y],
+#                         <TIMESTAMP> -> [[x,y,floor], [acc_x, acc_y, acc_z], [mag_x, mag_y, mag_z], [gyro_x, gyro_y, gyro_z], [<WIFI_FEATURES>]]
+def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_test):
+    files = [p for p in os.listdir(filepath) if p.endswith(".txt")]
+    files = filter_files(files, get_sites_from_sample(path_to_s_subm))
+    files = files[round(0.5 * len(files)):]
+
+    for file in files:
+        site = file.split("_")[0]
+        site_files = [p for p in files if p.startswith(site)]
+        index = get_site_index(rssi_type, site, site_files, filepath, path_to_test, 1000)
+
+        with open("{}/{}.pickle".format(path_to_site_index, site), "wb") as pf:
+            pickle.dump(index, pf)
+
+        with open(filepath + '/' + file, "r", errors = 'ignore') as f:
+            imu = list()
+            waypoints = list()
+            wifi = list()
+
+            for line in f:
+                if len(line) > 0 and line[0] == "#":
+                    continue
+
+                split = line.split("\t")
+
+                if len(split) > 1 and (split[1] == "TYPE_ACCELEROMETER" or split[1] == "TYPE_MAGNETIC_FIELD" or split[1] == "TYPE_GYROSCOPE"):
+                    imu.append([split[0], split[1], split[2], split[3], split[4]])
+
+                elif len(split)>  1 and split[1] == rssi_type:
+                    wifi.append([split[0], split[2], split[3], split[4]])
+
+                elif len(split) > 1 and split[1] == "TYPE_WAYPOINT":
+                    fwpts = split[2:]
+
+                    for wpt in fwpts:
+                        wpt_data = wpt.split(",")
+                        waypoints.append([int(wpt_data[0]), float(wpt_data[1]), float(wpt_data[2]), float(wpt_data[3])])
+
+        if imu == [] and wifi == []:
+            yield list()
+
+        df_imu = pd.DataFrame(imu)
+        df_wifi = pd.DataFrame(wifi)
+        del imu
+        del wifi
+        gc.collect()
+        df_imu[0] = df_imu[0].apply(lambda x: int(x))
+        df_imu[2] = df_imu[2].apply(lambda x: float(x))
+        df_imu[3] = df_imu[3].apply(lambda x: float(x))
+        df_imu[4] = df_imu[4].apply(lambda x: float(x))
+        df_wifi[0] = df_wifi[0].apply(lambda x: int(x))
+        grouped_imu = df_imu.groupby(0)
+        grouped_wifi = df_imu.groupby(0)
+        start_x, start_y = lowest_waypoint(waypoints)
+
+        time_to_features = {}
+
+        for time_stamp, group in grouped_imu:
+            time_to_features[str(time_stamp)] = []
+            nearest_wp = find_nearest_wp_index(waypoints, time_stamp)
+            group = group.drop_duplicates(subset = 1)
+
+            x = float(waypoints[nearest_wp][2])
+            y = float(waypoints[nearest_wp][3])
+            floor = int(waypoints[nearest_wp][1])
+
+            if (len(group.loc[group[1]=="TYPE_ACCELEROMETER"].values) == 0 or
+                    len(group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].values) == 0 or
+                    len(group.loc[group[1]=="TYPE_GYROSCOPE"].values) == 0):
+                continue
+
+            acc_feat = group.loc[group[1]=="TYPE_ACCELEROMETER"].values[0][2:5]
+            mag_feat = group.loc[group[1]=="TYPE_MAGNETIC_FIELD"].values[0][2:5]
+            gyro_feat = group.loc[group[1]=="TYPE_GYROSCOPE"].values[0][2:5]
+            time_to_features[str(time_stamp)].append([x, y, floor])
+            time_to_features[str(time_stamp)].append([acc_feat, mag_feat, gyro_feat])
+
+        for time_stamp, group in grouped_wifi:
+            group = group.drop_duplicates(subset = 2)
+            temp = group.iloc[:,2:4]
+            feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
+            feat = feat.transpose()
+
+            if (str(time_stamp) in time_to_features):
+                time_to_features[str(time_stamp)].append(feat.values[0])
+
+            else:
+                time_to_features[str(time_stampe)] = [[], [], feat.values[0]]
+
+        yield [file, [start_x, start_y], time_to_features]
 
 def get_sites_from_sample(path_to_sample):
     sub_df = pd.read_csv(path_to_sample)
@@ -28,7 +121,7 @@ def test_bssids(to_test, site):
     files = [f for f in os.listdir(to_test) if f.split("_")[0]==site]
     bssid_list = list()
     for file in files:
-        with open("{}/{}".format(to_test,file), "r") as f:
+        with open("{}/{}".format(to_test,file), "r", errors = 'ignore') as f:
             data = f.readlines()
         for line in data:
             splits = line.split("\t")
