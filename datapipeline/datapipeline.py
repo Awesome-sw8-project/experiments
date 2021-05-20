@@ -25,7 +25,7 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
     for site in sites:
         site_files = [p for p in files if p.startswith(site)]
     
-        site_files = site_files[round(0.5 * len(site_files)):]
+        site_files = site_files[:round(0.5 * len(site_files))]
         index = get_site_index(rssi_type, site, site_files, filepath, path_to_test, 1000)
         with open("{}/{}.pickle".format(path_to_site_index, site), "wb") as pf:
                 pickle.dump(index, pf)
