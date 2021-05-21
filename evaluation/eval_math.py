@@ -22,3 +22,18 @@ def mpe(estimations, ground_truths):
         sum += pe(estimations[i], ground_truths[i])
 
     return sum / len(estimations)
+
+# Root Mean Squared Error (RMSE).
+# Returns a 3-tuples, one tuple element for each coordinate.
+def rmse(estimations, ground_truths):
+    if len(estimations) != len(ground_truths):
+        raise ValueError("Arguments are not of the same size.")
+
+    sum_x = sum_y = sum_z = 0
+
+    for i in range(len(estimations)):
+        sum_x += math.sqrt(math.pow(ground_truths[i][0] - estimations[i][0], 2))
+        sum_y += math.sqrt(math.pow(ground_truths[i][1] - estimations[i][1], 2))
+        sum_z += math.sqrt(math.pow(ground_truths[i][2] - estimations[i][2], 2))
+
+    return sum_x / len(estimations), sum_y / len(estimations), sum_z / len(estimations)
