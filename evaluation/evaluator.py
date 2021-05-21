@@ -30,7 +30,7 @@ class Evaluator:
 
     # Computes RMSE.
     def __rmse(self):
-        self.__rmse = rm.rmse(self.evaluation_data, self.ground_truth_data)
+        self.rmse = em.rmse(self.evaluation_data, self.ground_truth_data)
 
     # Getter to mean positioning error.
     def get_mpe(self):
