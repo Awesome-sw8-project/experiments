@@ -41,7 +41,6 @@ class MLWrapper(Estimator):
     def __knn_next_position(self, data):
         pass
 
-    # TODO: Handle when an estimation is not possible.
     # LightGBM next position estimation.
     def __lightgbm_next_position(self, data):
         return LightGBMWrapper.predict(data, self.lightgbm_index)

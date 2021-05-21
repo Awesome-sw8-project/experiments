@@ -68,25 +68,31 @@ class MLPDRHybrid(Hybrid):
         super().__init__(start_location, algorithm_label)
         self.last_position = start_location
         self.using_pdr = False
+        self.time_limit = 1000
+        self.prev_timestamp = 0
 
-    # TODO: Check BSSID is usable by the SA algorithms (in ML wrapper).
     # Main entry for estimating position.
     def next_position(self, imu_data, antenna_data):
-        ml_pos = self.ml.next_position(antenna_data)
+        pos = self.ml.next_position(antenna_data)
+        timestamp = imu_data[0]
 
-        if (ml_pos == None):
+        if (timestamp - self.prev_timestamp > self.time_limit or antenna_data == []):
             if (not self.using_pdr):
-                self.pdr_realibrate(self.last_position[0], self.last_position[1])
+                self.pdr_recalibrate(p.Location(self.last_position[0], self.last_position[1]))
                 self.using_pdr = True
 
-            self.pdr_measurement_count += 1
             imu_pos = self.pdr.get_current_location(imu_data[0], imu_data[1], imu_data[2], imu_data[3])
-            self.last_position = [imu_pos.get_x(), imu_pos.get_y(), self.last_position[2]]
-            return self.last_position
+            pos = [imu_pos.get_x(), imu_pos.get_y(), self.last_position[2]]
 
-        self.using_pdr = False
-        self.last_position = ml_pos
-        return ml_pos
+        self.last_position = pos
+
+        if (len(antenna_data) > 0):
+            if (timestamp - self.prev_timestamp <= self.time_limit):
+                self.using_pdr = False
+
+            self.prev_timestamp = timestamp
+
+        return pos
 
     # Sets models index for LightGBM.
     def set_model_index(self, index):
@@ -163,10 +169,10 @@ if __name__ == "__main__":
         estimations = list()
 
         for path_data in site[1]:
-            hybrid = MLPDRHybrid(p.Location(path_data[1][0], path_data[1][1]), "lightgbm")
-            hybrid.set_model_index(model_map[site[0]])
             time_mapping = path_data[2]
             keys = list(time_mapping.keys())
+            hybrid = MLPDRHybrid(time_mapping[keys[0]][0], "lightgbm")
+            hybrid.set_model_index(model_map[site[0]])
 
             for timestamp in keys:
                 if (time_mapping[timestamp][0] == []):      # In case we don't have ground truth.
@@ -189,6 +195,6 @@ if __name__ == "__main__":
 
         site_count += 1
         eval = evaluator.Evaluator(estimations, ground_truths)
-        print("MPE (site " + site_count + "): " + str(eval.get_mpe()))
-        print("RMSE (site " + site_count + "): " + str(eval.get_rmse()) + "\n")
+        print("MPE (site " + str(site_count) + "): " + str(eval.get_mpe()))
+        print("RMSE (site " + str(site_count) + "): " + str(eval.get_rmse()) + "\n")
         eo.write(eval, "../results/hybrid/sites/" + site[0] + ".txt")
