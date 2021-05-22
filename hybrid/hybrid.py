@@ -10,30 +10,11 @@ sys.path.append("..")
 import datapipeline.datapipeline as pipe
 
 model_map = {
-    "5d27096c03f801723c31e5e0": 1,
-    "5da958dd46f8266d0737457b": 2,
-    "5d2709b303f801723c327472": 3,
-    "5da1382d4db8ce0c98bbe92e": 4,
-    "5da138754db8ce0c98bca82f": 5,
-    "5d2709e003f801723c32d896": 6,
-    "5dbc1d84c1eb61796cf7c010": 7,
-    "5d27097f03f801723c320d97": 8,
-    "5d2709c303f801723c3299ee": 9,
-    "5a0546857ecc773753327266": 10,
-    "5da138274db8ce0c98bbd3d2": 11,
-    "5c3c44b80379370013e0fd2b": 12,
-    "5da138b74db8ce0c98bd4774": 13,
-    "5da138764db8ce0c98bcaa46": 14,
-    "5da138314db8ce0c98bbf3a0": 15,
-    "5d27099f03f801723c32511d": 16,
-    "5d2709a003f801723c3251bf": 17,
-    "5d2709d403f801723c32bd39": 18,
-    "5da138364db8ce0c98bc00f1": 19,
-    "5da1383b4db8ce0c98bc11ab": 20,
-    "5d27075f03f801723c2e360f": 21,
-    "5da1389e4db8ce0c98bd0547": 22,
-    "5dc8cea7659e181adb076a3f": 23,
-    "5d2709bb03f801723c32852c": 24
+    "5da138754db8ce0c98bca82f": 1,
+    "5da138274db8ce0c98bbd3d2": 2,
+    "5d2709d403f801723c32bd39": 3,
+    "5dc8cea7659e181adb076a3f": 4,
+    "5d2709bb03f801723c32852c": 5
 }
 
 # Loads .pickle files with train data.
@@ -49,7 +30,7 @@ def gen_for_serialisation(path_to_train):
 class Hybrid(ml.Estimator):
     def __init__(self, start_location, algorithm_label):
         self.heading_type = "madgwick"
-        self.pdr = p.AHRSPDR(start_location, heading_type = self.heading_type)
+        self.pdr = p.AHRSPDR(p.Location(start_location[0], start_location[1]), heading_type = self.heading_type)
         self.ml = ml.MLWrapper(algorithm_label)
 
     # Re-calibrates PDR.
@@ -165,6 +146,10 @@ if __name__ == "__main__":
     site_count = 0
 
     for site in iter:
+        if site_count < 0:
+            site_count += 1
+            continue
+
         ground_truths = list()
         estimations = list()
 
@@ -197,4 +182,4 @@ if __name__ == "__main__":
         eval = evaluator.Evaluator(estimations, ground_truths)
         print("MPE (site " + str(site_count) + "): " + str(eval.get_mpe()))
         print("RMSE (site " + str(site_count) + "): " + str(eval.get_rmse()) + "\n")
-        eo.write(eval, "../results/hybrid/sites/" + site[0] + ".txt")
+        eo.write(eval, "../results/hybrid/average/" + site[0] + ".txt")
