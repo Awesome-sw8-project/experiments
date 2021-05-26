@@ -1,25 +1,8 @@
-import os,pickle, math
-import matplotlib.pyplot as plt, numpy as np
-import seaborn as sns, pandas as pd
+import os
 from functools import reduce
-
-from visualise_data import unpickle_hist
-
+from ML.visualise_data import unpickle_hist
 
 def get_mean_loss(hists):
-    loss = 0
-    n_loss = None
-    n = 0
-    for hist in hists:
-        if n_loss == None:
-            loss = hist["loss"][len(hist["loss"])-1]
-            n_loss = float(hist["val_loss"][len(hist["val_loss"])-1])
-        else:
-            loss += hist["loss"][len(hist["loss"])-1]
-            n_loss += hist["val_loss"][len(hist["val_loss"])-1]
-        n+=1
-    return loss/n, n_loss/n
-def get_mean_loss_2(hists):
     div = 0
     loss = 0
     val_loss = 0
@@ -38,7 +21,7 @@ def get_mean_site(path_results,site, value):
     hists = [unpickle_hist(path_results,x) for x in y_results]
     epochs = max([len(x["loss"]) for x in hists])
     #l, vl = get_data(hists, epochs-1)
-    l,vl = get_mean_loss_2(hists)
+    l,vl = get_mean_loss(hists)
     return l, vl, False
 
 def get_mean(path_results):
@@ -53,10 +36,7 @@ def get_mean(path_results):
     mean_mean_vl = reduce(lambda a,b:a+b, mean_v_l)/len(mean_v_l)
     print("path is : {}".format(path_results))
     print("The mean of training loss MSE is : {}\nThe mean of the validation MSE is: {}".format(mean_mean_l,mean_mean_vl))
-    
-    #print(mean_v_l)
     return mean_mean_l,mean_mean_vl
-
 
 ###For get mean best k.
 def get_worst_loss(hists):
@@ -120,7 +100,7 @@ def get_worst_site(path_results, site, value):
     
     return l, vl, False
 
-def get_mean__k(path_results, option="mean", value="floors"):
+def get_mean_k(path_results, option="mean", value="floors"):
     sites = [x.split("_")[0] for x in os.listdir(path_results)]
     sites = list(set(sites))
     mean_l, mean_v_l= list(),list()
@@ -144,9 +124,7 @@ def get_mean__k(path_results, option="mean", value="floors"):
     print("path is : {}".format(path_results))
     print("The mean of training loss MSE is : {}\nThe mean of the validation MSE is: {}".format(mean_mean_l,mean_mean_vl))
     
-    #print(mean_v_l)
     return mean_mean_l,mean_mean_vl
-
 
 if __name__ == "__main__":
     pass
