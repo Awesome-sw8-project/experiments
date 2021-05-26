@@ -102,7 +102,7 @@ def get_all(filepath, rssi_type, path_to_s_subm, path_to_site_index, path_to_tes
                 temp = group.iloc[:,2:4]
                 feat = temp.set_index(2).reindex(index).replace(np.nan, -999)
                 feat = feat.transpose()
-
+                
                 if (str(time_stamp) in time_to_features):
                     time_to_features[str(time_stamp)].append(feat.values[0])
 
@@ -167,6 +167,7 @@ def get_site_index(rssi_type,siteID, site_files, data_path, path_to_test_set, oc
 
 #returns training data and ground truth for a site.
 def rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test, getfirsthalf=False, getSecondHalf=False):
+    mapping = dict()
     wifi_features = list()
     ground_truth = list()
     

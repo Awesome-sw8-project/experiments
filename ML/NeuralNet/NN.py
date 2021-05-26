@@ -84,6 +84,58 @@ def get_sample_submission_index(path_to_sample):
     df = pd.read_csv(path_to_sample)
     return df["site_path_timestamp"]
 
+def comp_metric(xhat, yhat, fhat, x, y, f):
+    intermediate = np.sqrt(np.power(xhat-x, 2) + np.power(yhat-y, 2)) + 15 * np.abs(fhat-f)
+    return intermediate.sum() / xhat.shape[0]
+
+#fits models for x,y, and floor seperately.
+def fit_models_site(site, train_data, target_data,val_feat,val_ground, path_to_save, exp_no, test_data):
+    train_data = np.asarray(train_data).astype(np.float)
+    xs,ys,floors = get_x_y_floor(target_data)
+    target_data = np.asarray(target_data).astype(np.float)
+    model = create_model(train_data.shape)
+    history = model.fit(
+                        train_data, 
+                        xs, 
+                        batch_size=32,
+                        verbose=1, 
+                        epochs=100,
+                        callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)],
+                        metrics=['root_mean_squared_error'],
+                        validation_data=(val_feat,val_ground))
+    with open("{}/X/".format(path_to_save,),"wb") as f:
+        pickle.dump(history,f)
+    x_preds = model.predict(train_data)
+    model = create_model(train_data.shape)
+    history = model.fit(
+                        train_data, 
+                        ys, 
+                        batch_size=32,
+                        verbose=1, 
+                        epochs=100,
+                        callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)],
+                        metrics=['root_mean_squared_error'],
+                        validation_data=(val_feat,val_ground))
+    with open("{}/Y/".format(path_to_save,),"wb") as f:
+        pickle.dump(history,f)
+    y_preds = model.predict(train_data)
+    model = create_model(train_data.shape)
+    history = model.fit(
+                        train_data, 
+                        floors, 
+                        batch_size=32,
+                        verbose=1, 
+                        epochs=100,
+                        callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)],
+                        metrics=['root_mean_squared_error'],
+                        validation_data=(val_feat,val_ground))
+    with open("{}/X/".format(path_to_save,),"wb") as f:
+        pickle.dump(history,f)
+    floor_preds = model.predict(train_data)
+    msp = comp_metric(x_preds,y_preds,floor_preds,xs,ys,floors)
+    print(msp)
+
+
 if __name__ == "__main__":
     sample_dfs = list()
     gen = gen_for_serialisation(path_to_train)
