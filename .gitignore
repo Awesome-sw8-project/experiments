@@ -1,4 +1,6 @@
 IMU/PDR/lib/
 results/PDR/*
+results/hybrid
 !results/PDR/*.py
 !results/math/*.py
+!results/hybrid/*.py
