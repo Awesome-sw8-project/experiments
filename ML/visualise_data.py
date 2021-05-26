@@ -1,6 +1,5 @@
-import os,pickle, math
-import matplotlib.pyplot as plt, numpy as np
-import seaborn as sns, pandas as pd
+import os, pickle
+import matplotlib.pyplot as plt
 
 def unpickle_hist(path,file):
     with open("{path}/{file}".format(path=path,file=file), "rb") as f:
@@ -65,7 +64,6 @@ def v_l_helper(path, files):
         l, vl = get_data(hists, x)
         loss.append(l)
         val_loss.append(vl)
-    print("The loss is : {}\n The val loss is: {}".format(loss,val_loss))
 
 def vis_helper(path, files, title, saveto, skip=0):
     hists = [unpickle_hist(path,x) for x in files]
@@ -78,59 +76,22 @@ def vis_helper(path, files, title, saveto, skip=0):
         loss.append(l)
         val_loss.append(vl)
     epochs = [x for x in range(1,epochs+1)]
-    #ax = plt.gca()
-    #ax.ticklabel_format(axis='both', style='plain', useOffset=False)
-    plt.plot(epochs[skip:], loss[skip:], 'bo-', label="loss")
-    plt.plot(epochs[skip:], val_loss[skip:], 'go-', label="validation loss")
-    plt.xlabel("Epoch")
-    plt.ylabel("Mean squared Error")
-    plt.title(title)
-    plt.legend()
-    #print("loss : {}\n\nval_loss: {}".format(loss,val_loss))
-    #print("\n\n\n\n")
-    plt.savefig("{}/{}".format(saveto,title))
+    plt.plot(epochs[skip:], loss[skip:], 'bo-', label="Training loss")
+    plt.plot(epochs[skip:], val_loss[skip:], 'go-', label="Validation loss")
+    if skip == 0:
+        plt.xlabel("Epoch")
+        plt.ylabel("Mean squared Error")
+    else:
+        plt.legend()
+    plt.savefig("{}/{}".format(saveto,title),bbox_inches='tight')
     plt.close()
 
-def vis_helper2(path, files, title, saveto):
-    hists = [unpickle_hist(path,x) for x in files]
-    epochs = max([len(x["loss"]) for x in hists])
-    loss = list()
-    min_loss = list()
-    max_loss = list()
-    val_loss = list()
-    val_min = list()
-    val_max = list()
-    
-    for x in range(0,epochs):
-        #loss/div,min_loss,max_loss, val_loss/div, v_min_loss,v_max_loss
-        l,l_min,l_max, v,v_min,v_max = get_data(hists, x)
-        loss.append(l)
-        min_loss.append(l_min)
-        max_loss.append(l_max)
-        val_loss.append(v)
-        val_min.append(v_min)
-        val_max.append(v_max)
-    epochs = range(1, epochs + 1)
-    plt.plot(epochs, loss, 'bo-', label="Training loss")
-    plt.fill_between(epochs,max_loss, loss, color='blue', alpha=0.9)
-    plt.fill_between(epochs,loss,min_loss, color='blue',alpha=0.9)
-
-    plt.plot(epochs, val_loss, 'yo-', label="validation loss")
-    plt.fill_between(epochs,val_max,val_loss, color='lightyellow',alpha=0.9)
-    plt.fill_between(epochs,val_loss,min_loss, color='lightyellow',alpha=0.9)
-    plt.xlabel("Epoch")
-    plt.ylabel("Mean squared Error")
-    plt.title(title)
-    plt.legend()
-    plt.savefig("{path}/{title}".format(path=saveto,title=title))
-    plt.close()
 
 if "__main__" == __name__:
+    path = ""
+    path_to_save = ''
     sites = [x.split("_")[0] for x in os.listdir(path)]
-    sites = list(set(sites))
+    sites = sorted(list(set(sites)))
     for site in sites:
-        #if not site == '5da138764db8ce0c98bcaa46':
-        #    continue
-        #print_vl(path, site)
         print(site)
         visualise(path, site, path_to_save, skip=0)

@@ -1,5 +1,4 @@
-import os, json, gc, pickle
-from collections import Counter
+import pickle
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
@@ -7,16 +6,12 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-sys.path.insert(0,"../")
-from load_data import get_x_y_floor, gen_for_serialisation, get_data_for_test
+from ML.load_data import get_x_y_floor, gen_for_serialisation, get_data_for_test
+from ML.LightGBM import comp_metric
 
 #change this according to model
-from models.model02 import create_model
+from ML.NeuralNet.models.model01 import create_model
 
-pt_testset= ''
-path_to_save =''
-path_to_train = ""
-path_to_sample = ""
 #fit to the neural net
 def fit(train_data, target_data, experiment_no, path_to_save, test_data):
     target_data = np.asarray(target_data).astype(np.float)
@@ -52,15 +47,6 @@ def fit(train_data, target_data, experiment_no, path_to_save, test_data):
         predictions[key] = [x/10 for x in predictions[key]]
     return predictions
 
-#Deprecated for Now!!!
-#fits model to x,y and floor coordinates
-def fit_model_site(site, train_data, target_data, path_to_save, test_data):
-    train_data = np.array(train_data)
-    train_data = train_data.astype(np.float)
-    target_data = np.array(target_data)
-    target_data = target_data.astype(np.float)
-    fit(train_data, target_data, "03", path_to_save, test_data)
-
 #fits models for x,y, and floor seperately.
 def fit_model_site_all_three_model(site, train_data, target_data, path_to_save, exp_no, test_data):
     train_data = np.array(train_data)
@@ -84,12 +70,65 @@ def get_sample_submission_index(path_to_sample):
     df = pd.read_csv(path_to_sample)
     return df["site_path_timestamp"]
 
+
+#fits models for x,y, and floor seperately.
+def fit_models_site(site, train_data, target_data,val_feat,val_ground, path_to_save, exp_no, test_data):
+    train_data = np.asarray(train_data).astype(np.float)
+    xs,ys,floors = get_x_y_floor(target_data)
+    target_data = np.asarray(target_data).astype(np.float)
+    model = create_model(train_data.shape)
+    history = model.fit(
+                        train_data, 
+                        xs, 
+                        batch_size=32,
+                        verbose=1, 
+                        epochs=100,
+                        callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)],
+                        metrics=['root_mean_squared_error'],
+                        validation_data=(val_feat,val_ground))
+    with open("{}/X/".format(path_to_save,),"wb") as f:
+        pickle.dump(history,f)
+    x_preds = model.predict(train_data)
+    model = create_model(train_data.shape)
+    history = model.fit(
+                        train_data, 
+                        ys, 
+                        batch_size=32,
+                        verbose=1, 
+                        epochs=100,
+                        callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)],
+                        metrics=['root_mean_squared_error'],
+                        validation_data=(val_feat,val_ground))
+    with open("{}/Y/".format(path_to_save,),"wb") as f:
+        pickle.dump(history,f)
+    y_preds = model.predict(train_data)
+    model = create_model(train_data.shape)
+    history = model.fit(
+                        train_data, 
+                        floors, 
+                        batch_size=32,
+                        verbose=1, 
+                        epochs=100,
+                        callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)],
+                        metrics=['root_mean_squared_error'],
+                        validation_data=(val_feat,val_ground))
+    with open("{}/X/".format(path_to_save,),"wb") as f:
+        pickle.dump(history,f)
+    floor_preds = model.predict(train_data)
+    msp = comp_metric(x_preds,y_preds,floor_preds,xs,ys,floors)
+    print(site +" MPE :  "+ msp)
+
+
 if __name__ == "__main__":
+    pt_testset= ''
+    path_to_save =''
+    path_to_train = ""
+    path_to_sample = ""
     sample_dfs = list()
     gen = gen_for_serialisation(path_to_train)
     for site, train, truth in gen:
         test_data = get_data_for_test(pt_testset, site)
-        sample_dfs.append( fit_model_site_all_three_model(site,train, truth, path_to_save, "04", test_data))
+        sample_dfs.append( fit_model_site_all_three_model(site,train, truth, path_to_save, "01", test_data))
         #fit_model_site_all_three_model(site,train, truth, path_to_save, "04", test_data)
         break
     sample_df = pd.concat(sample_dfs)

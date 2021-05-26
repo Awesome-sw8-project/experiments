@@ -1,8 +1,6 @@
 import pandas as pd, os, json, gc, numpy as np, pickle
 from collections import Counter
 
-from datapipeline import *
-
 #necessary dimensions [sample, timestep, features]
 #returns training data and ground truth for a site.
 def time_rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test):
@@ -78,3 +76,46 @@ def time_rssi_features(rssi_type, data_path, path_to_s_subm, path_to_site_index,
         site_files = [p for p in files if p.startswith(site)]
         train_data, ground_truth = time_rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test)
         yield  site, train_data, ground_truth
+
+
+def time_test_feats_pickled(rssi_type, path_to_s_subm,path_to_test, path_to_indices, path_to_save_test):
+    ssubm = pd.read_csv(path_to_s_subm)
+    #ssubm_df contains site, path and timestamp
+    ssubm_df = ssubm["site_path_timestamp"].apply(lambda x: pd.Series(x.split("_")))
+    #group by the sites
+    ssubm_groups = ssubm_df.groupby(0)    
+    for gid0, g0 in ssubm_groups:
+        
+        with open("{path_to_i}/{site}.pickle".format(path_to_i=path_to_indices, site=gid0), "rb") as f:
+            index = pickle.load(f)
+        
+        time_series = list()
+        
+        for gid, g in g0.groupby(1):
+            with open("{path_to_test}/{site}_{path}.txt".format(path_to_test=path_to_test,site =gid0, path = gid), "r") as f:
+                txt = f.readlines()
+            rssi = list()
+            for line in txt:
+                line = line.split("\t")
+                if line[1] == rssi_type:
+                    rssi.append(line)
+            rssi_df = pd.DataFrame(rssi)
+            del rssi
+            gc.collect()
+            rssi_points = pd.DataFrame(rssi_df.groupby(0).count().index.tolist())
+
+            for timepoint in g.iloc[:,2].tolist():
+                deltas = (rssi_points.astype(int)-int(timepoint)).abs()
+                min_delta_idx = deltas.values.argmin()
+                feats = list()
+                for ind in range(0,min_delta_idx):
+                    rssi_block_timestamp = rssi_points.iloc[ind].values[0]
+                    rssi_block = rssi_df[rssi_df[0]== rssi_block_timestamp].drop_duplicates(subset=3)
+                    feat = rssi_block.set_index(3)[4].reindex(index).fillna(-999)
+                    feats.append(feat.values)
+                
+                site_path_timestamp = "{site}_{path}_{timestamp}".format(site=g.iloc[0,0], path=g.iloc[0,1],timestamp=timepoint)
+                time_series.append((feats, site_path_timestamp))
+                
+        with open("{path_to_save}/{site}.pickle".format(path_to_save=path_to_save_test,site=gid0),"wb") as f:
+            pickle.dump(time_series,f)
