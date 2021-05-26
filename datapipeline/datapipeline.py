@@ -2,8 +2,8 @@ import pandas as pd, os, json, gc, numpy as np, pickle
 from collections import Counter
 
 #added for backward compatibility
-#from datapipeline.imu_pipe import imu_data, lowest_waypoint, filter_files
-from imu_pipe import imu_data, lowest_waypoint, filter_files
+from datapipeline.imu_pipe import imu_data, lowest_waypoint, filter_files
+from datapipeline.hybrid_pipe import imu_data_hybrid, rssi_features_hybrid
 
 train_path = ''
 path_to_s_subm = ""
