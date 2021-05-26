@@ -9,10 +9,8 @@ def rssi_features_hybrid(rssi_type, data_path, path_to_site_index):
     files = [p for p in os.listdir(data_path) if p.endswith(".txt")]
     for site in sites:
         site_files = [p for p in files if p.startswith(site)]
-        #Create index or list of BSSID values for a site.
-        index = get_site_index(site, path_to_site_index)
-        """with open("{}/{}.pickle".format(path_to_site_index, site), "wb") as f:
-            pickle.dump(index, f)"""
+        #Use index or list of BSSID values for a site.
+        index = get_site_index_v2(site, path_to_site_index)
         site_file_to_iterate = sorted(site_files)
         site_file_to_iterate = sorted(site_files[:round(0.5 * len(site_files))])
 
@@ -66,13 +64,11 @@ def rssi_features_hybrid(rssi_type, data_path, path_to_site_index):
             path_to_data[path] = mapping
         yield site, path_to_data
 
-def imu_data_hybrid(filepath):
-    files = [p for p in os.listdir(filepath) if p.endswith(".txt")]
+def imu_data_hybrid(filepath, path_to_path_index):
     sites = ['5d2709bb03f801723c32852c','5d2709d403f801723c32bd39','5da138274db8ce0c98bbd3d2','5da138754db8ce0c98bca82f','5dc8cea7659e181adb076a3f']
     for site in sites:
         path_to_data = dict()
-
-        with open("../../data/data/paths/{}.pickle".format(site), "rb") as f:
+        with open("{}/{}.pickle".format(path_to_path_index,site), "rb") as f:
             site_file_to_iterate = pickle.load(f)
 
         for file in site_file_to_iterate:

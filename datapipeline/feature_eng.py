@@ -1,6 +1,7 @@
 import os, pickle, numpy as np
 
-def create_new_train(path_to_train, path_to_save):
+#Creates new train data given old data, where data with no rssi values are removed.
+def create_train_wout_no_rssi(path_to_train, path_to_save):
     files = [f for f in os.listdir(path_to_train)]
     for file in files:
         with open("{}/{}".format(path_to_train, file), "rb") as f:
@@ -22,7 +23,7 @@ def normalise_value(x, min_val, max_val):
     x = np.asarray(x).astype(np.int)
     return (x-min_val)/(max_val-min_val)
 
-
+#Min max normalisation of train data
 def min_max_normalise(p_t_train, p_t_test, site, save_train,save_test):
     with open("{}/{}.pickle".format(p_t_train,site),"rb") as f:
         siteID, train, label = pickle.load(f)
@@ -43,6 +44,7 @@ def min_max_normalise(p_t_train, p_t_test, site, save_train,save_test):
         pickle.dump(n_test_data, f)
     print("Feature Engineered for site: {}".format(site))
 
+#min max normalisation of evaluation dataset
 def evaluation_min_max_normalise(p_t_train, p_t_test, site, save_train,save_test):
     with open("{}/{}.pickle".format(p_t_train,site),"rb") as f:
         siteID, train, label = pickle.load(f)
@@ -64,17 +66,19 @@ def evaluation_min_max_normalise(p_t_train, p_t_test, site, save_train,save_test
         pickle.dump((site,new_train,label), f)
     print("Feature Engineered for site: {}".format(site))
 
+#min max normalise for sites
 def normalise_for_sites(pt_train, pt_test, save_train, save_test):
     sites = [site.split(".")[0] for site in os.listdir(pt_train)]
     for site in sites:
         min_max_normalise(pt_train,pt_test, site,save_train,save_test)
 
-
+#min max normalise for sites in evaluation dataset
 def eval_normalise_for_sites(pt_train, pt_test, save_train, save_test):
     sites = [site.split(".")[0] for site in os.listdir(pt_train)]
     for site in sites:
         evaluation_min_max_normalise(pt_train,pt_test, site,save_train,save_test)
 
+#create dataset with even distribution of floors.
 def even_train(path_to_train, path_to_save):
     train_files = [x for x in os.listdir(path_to_train)]
     lst = list()
@@ -110,7 +114,8 @@ def even_train(path_to_train, path_to_save):
         
         with open("{}/{}.pickle".format(path_to_save,site),"wb") as f:
             pickle.dump((site, sub_train,sub_ground),f)
-        
+
+#check whether dataset contains features with no rssi values.
 def check_no_rssi(train_path):
     files = [f for f in os.listdir(train_path)]
     for file in files:
@@ -122,6 +127,7 @@ def check_no_rssi(train_path):
                 total+=1
         print("Site: {} has {} with not rssi\n".format(site,total))
 
+#check the floor values.
 def get_floors(path):
     val_files = [x for x in os.listdir(path)]
     floors =list()
@@ -132,15 +138,5 @@ def get_floors(path):
             floors.append(x[2])
     print(set(floors))
 
-def get_second_half(path, save_path, val):
-    train_files = [x for x in os.listdir(path)]
-    for file in train_files:
-        with open("{}/{}".format(path,file),"rb") as f:
-            site, train, ground = pickle.load(f)
-        
-        with open("{}/{}.pickle".format(save_path,site),"wb") as f:
-            print("New file size : {}".format(len(train[round(0.5*len(train)):round(0.5*len(train))+val])))
-            pickle.dump((site, train[round(0.5*len(train)):round(0.5*len(train))+val],ground[round(0.5*len(train)):round(0.5*len(train))+val]),f)
-if __name__ == "__main__":
-    
+if __name__ == "__main__":    
     pass

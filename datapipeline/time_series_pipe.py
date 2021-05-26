@@ -1,8 +1,6 @@
 import pandas as pd, os, json, gc, numpy as np, pickle
 from collections import Counter
 
-from datapipeline import *
-
 #necessary dimensions [sample, timestep, features]
 #returns training data and ground truth for a site.
 def time_rssi_feats_site(site_files, data_path, rssi_type, site, path_to_site_index, path_to_test):
@@ -84,8 +82,6 @@ def time_test_feats_pickled(rssi_type, path_to_s_subm,path_to_test, path_to_indi
     ssubm = pd.read_csv(path_to_s_subm)
     #ssubm_df contains site, path and timestamp
     ssubm_df = ssubm["site_path_timestamp"].apply(lambda x: pd.Series(x.split("_")))
-    
-
     #group by the sites
     ssubm_groups = ssubm_df.groupby(0)    
     for gid0, g0 in ssubm_groups:
