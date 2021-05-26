@@ -10,12 +10,14 @@ class Evaluator:
         self.ground_truth_data = actual
         self.mpe = 0
         self.pe = []
+        self.rmse = (0, 0, 0)
         self.__eval_results()
 
     # Entry method for evaluation results.
     def __eval_results(self):
         self.__eval_positions()
         self.__mpe()
+        self.__rmse()
 
     # Evaluates each estimated position.
     def __eval_positions(self):
@@ -26,6 +28,10 @@ class Evaluator:
     def __mpe(self):
         self.mpe = em.mpe(self.evaluation_data, self.ground_truth_data)
 
+    # Computes RMSE.
+    def __rmse(self):
+        self.rmse = em.rmse(self.evaluation_data, self.ground_truth_data)
+
     # Getter to mean positioning error.
     def get_mpe(self):
         return self.mpe
@@ -33,3 +39,7 @@ class Evaluator:
     # Getter to positioning error for each estimation.
     def get_pe(self):
         return self.pe
+
+    # Getter to RMSE.
+    def get_rmse(self):
+        return self.rmse

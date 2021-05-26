@@ -3,7 +3,8 @@ import evaluation.evaluator
 # Writes evaluation output.
 def write(evaluator, output_name):
     with open(output_name, "w") as file:
-        file.write("MPE:\t\t" + str(evaluator.get_mpe()))
+        file.write("MPE:\t\t" + str(evaluator.get_mpe()) + "\n")
+        file.write("RMSE:\t\t(" + str(evaluator.get_rmse()[0]) + ", " + str(evaluator.get_rmse()[1]) + ", " + str(evaluator.get_rmse()[2]) + ")")
         file.write("\n\nIndex\t\tPositioning error\n")
         __write_pes(evaluator, file)
 

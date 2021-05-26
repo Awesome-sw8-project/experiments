@@ -69,6 +69,7 @@ def normalise_for_sites(pt_train, pt_test, save_train, save_test):
     for site in sites:
         min_max_normalise(pt_train,pt_test, site,save_train,save_test)
 
+
 def eval_normalise_for_sites(pt_train, pt_test, save_train, save_test):
     sites = [site.split(".")[0] for site in os.listdir(pt_train)]
     for site in sites:
