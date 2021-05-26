@@ -1,11 +1,5 @@
-<<<<<<< HEAD
 import os, pickle
 import matplotlib.pyplot as plt
-=======
-import os,pickle, math
-import matplotlib.pyplot as plt, numpy as np
-import seaborn as sns, pandas as pd
->>>>>>> 5beaa876908e72545c847371cfd30ab1ac4b16f3
 
 def unpickle_hist(path,file):
     with open("{path}/{file}".format(path=path,file=file), "rb") as f:
@@ -70,34 +64,6 @@ def v_l_helper(path, files):
         l, vl = get_data(hists, x)
         loss.append(l)
         val_loss.append(vl)
-<<<<<<< HEAD
-=======
-    print("The loss is : {}\n The val loss is: {}".format(loss,val_loss))
-
-def vis_helper(path, files, title, saveto, skip=0):
-    hists = [unpickle_hist(path,x) for x in files]
-    epochs = max([len(x["loss"]) for x in hists])
-    
-    loss = list()
-    val_loss = list()
-    for x in range(0,epochs):
-        l, vl = get_data(hists, x)
-        loss.append(l)
-        val_loss.append(vl)
-    epochs = [x for x in range(1,epochs+1)]
-    #ax = plt.gca()
-    #ax.ticklabel_format(axis='both', style='plain', useOffset=False)
-    plt.plot(epochs[skip:], loss[skip:], 'bo-', label="loss")
-    plt.plot(epochs[skip:], val_loss[skip:], 'go-', label="validation loss")
-    plt.xlabel("Epoch")
-    plt.ylabel("Mean squared Error")
-    plt.title(title)
-    plt.legend()
-    #print("loss : {}\n\nval_loss: {}".format(loss,val_loss))
-    #print("\n\n\n\n")
-    plt.savefig("{}/{}".format(saveto,title))
-    plt.close()
->>>>>>> 5beaa876908e72545c847371cfd30ab1ac4b16f3
 
 def vis_helper(path, files, title, saveto, skip=0):
     hists = [unpickle_hist(path,x) for x in files]
@@ -125,17 +91,7 @@ if "__main__" == __name__:
     path = ""
     path_to_save = ''
     sites = [x.split("_")[0] for x in os.listdir(path)]
-<<<<<<< HEAD
     sites = sorted(list(set(sites)))
     for site in sites:
         print(site)
         visualise(path, site, path_to_save, skip=0)
-=======
-    sites = list(set(sites))
-    for site in sites:
-        #if not site == '5da138764db8ce0c98bcaa46':
-        #    continue
-        #print_vl(path, site)
-        print(site)
-        visualise(path, site, path_to_save, skip=0)
->>>>>>> 5beaa876908e72545c847371cfd30ab1ac4b16f3
