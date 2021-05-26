@@ -22,8 +22,7 @@ from contextlib import contextmanager
 import joblib
 
 from load_data import *
-
-
+        
 # ------------------------------------------------------------------------------
 # Fixed values
 # ------------------------------------------------------------------------------
@@ -84,9 +83,11 @@ set_seed(SEED)
 # ------------------------------------------------------------------------------
 # Input data
 # ------------------------------------------------------------------------------
-train_files = sorted(glob.glob('../input/indoor-positioning-data/train_data/*'))
-test_files = sorted(glob.glob('../input/indoor-positioning-data/test_data/*'))
-subm = pd.read_csv('../input/indoor-positioning-data/sample_submission.csv', index_col=0)
+#train_files = sorted(glob.glob('../input/final-model-dataset-indoor-position/Final evaluation data/train/*'))
+#test_files = sorted(glob.glob('../input/indoor-dataset-final/final data/val/*'))
+#subm = pd.read_csv('../input/indoor-location-navigation/sample_submission.csv', index_col=0)
+train_path = '../input/final-model-dataset-indoor-position/Final evaluation data/train'
+val_path = '../input/final-model-dataset-indoor-position/Final evaluation data/val'
 
 # ------------------------------------------------------------------------------
 # Define parameters for models
@@ -128,109 +129,91 @@ lgb_f_params = {'objective': 'multiclass',
 def create_models():
     score_df = pd.DataFrame()
     oof = list()
+    gen = gen_for_serialisation(train_path)
+    n_files = 1;
+    for site, train, ground in gen:
 
-    for n_files, file in enumerate(train_files):
-
-        # Check if the model files exist, in case all exist, then skip site
-        new_x = False
-        new_y = False
-        new_f = False
-
-        if not(os.path.exists(f'LightGBM_models/{n_files}modelx.txt')):
-                new_x = True
-        if not(os.path.exists(f'LightGBM_models/{n_files}modely.txt')):
-                new_y = True
-        if not(os.path.exists(f'LightGBM_models/{n_files}modelf.txt')):
-                new_f = True
-
-        if not(new_x) and not(new_y) and not(new_f):
-            print(f"Skipping site {n_files}")
-            continue
-
-        # init variables
-        site, train, ground = gen_for_serialisation_one_path(file)
         df1 = pd.DataFrame(train)
         df2 = pd.DataFrame(ground)
-        data = pd.concat([df1, df2], axis=1, join='inner')
+        train_data = pd.concat([df1, df2], axis=1, join='inner')
 
-        oof_x, oof_y, oof_f = np.zeros(data.shape[0]), np.zeros(data.shape[0]), np.zeros(data.shape[0])
+        _, train, ground = get_data_for_test(val_path,site)
+        df1 = pd.DataFrame(train)
+        df2 = pd.DataFrame(ground)
+        test_data = pd.concat([df1, df2], axis=1, join='inner')
 
-        # Iterate through each k-fold
-        kf = KFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
-        for fold, (trn_idx, val_idx) in enumerate(kf.split(data.iloc[:, :-3])):
-            # Structure the trainings data and validation data
-            X_train = data.iloc[trn_idx, :-3].astype(int)
-            y_trainx = data.iloc[trn_idx, -3]
-            y_trainy = data.iloc[trn_idx, -2]
-            y_trainf = data.iloc[trn_idx, -1]
+        oof_x, oof_y, oof_f = np.zeros(test_data.shape[0]), np.zeros(test_data.shape[0]), np.zeros(test_data.shape[0])
 
-            X_valid = data.iloc[val_idx, :-3].astype(int)
-            y_validx = data.iloc[val_idx, -3]
-            y_validy = data.iloc[val_idx, -2]
-            y_validf = data.iloc[val_idx, -1]
+        # Structure the trainings data and validation data
+        X_train = train_data.iloc[:, :-3].astype(int)
+        y_trainx = train_data.iloc[:, -3]
+        y_trainy = train_data.iloc[:, -2]
+        y_trainf = train_data.iloc[:, -1]
+
+        X_valid = test_data.iloc[:, :-3].astype(int)
+        y_validx = test_data.iloc[:, -3]
+        y_validy = test_data.iloc[:, -2]
+        y_validf = test_data.iloc[:, -1]
+        
+        # Check for each model and creates a new if one is missing
+        if not(os.path.exists(f'{n_files}modelx.txt')):
+            modelx = lgb.LGBMRegressor(**lgb_params)
+            with timer("fit X"):
+                modelx.fit(X_train, y_trainx,
+                           eval_set=[(X_valid, y_validx)],
+                           eval_metric='rmse',
+                           verbose=False,
+                           early_stopping_rounds=20
+                           )
+            modelx.booster_.save_model(f'{n_files}modelx.txt')
+        else:
+            modelx = lgb.Booster(model_file=f'{n_files}modelx.txt')
+
+        if not(os.path.exists(f'{n_files}modely.txt')):
+            modely = lgb.LGBMRegressor(**lgb_params)
+            with timer("fit Y"):
+                modely.fit(X_train, y_trainy,
+                           eval_set=[(X_valid, y_validy)],
+                           eval_metric='rmse',
+                           verbose=False,
+                           early_stopping_rounds=20
+                           )
+            modely.booster_.save_model(f'{n_files}modely.txt')
+        else:
+            modely = lgb.Booster(model_file=f'{n_files}modely.txt')
+
+        if not(os.path.exists(f'{n_files}modelf.txt')):
+            modelf = lgb.LGBMClassifier(**lgb_f_params)
+            with timer("fit F"):
+                modelf.fit(X_train, y_trainf,
+                           eval_set=[(X_valid, y_validf)],
+                           eval_metric='multi_logloss',
+                           verbose=False,
+                           early_stopping_rounds=20
+                           )
+            joblib.dump(modelf, f'{n_files}modelf.txt')
+        else:
+            modelf = joblib.load(f'{n_files}modelf.txt')
             
-            # Check for each model and creates a new if one is missing
-            if new_x:
-                new_x = True
-                modelx = lgb.LGBMRegressor(**lgb_params)
-                with timer("fit X"):
-                    modelx.fit(X_train, y_trainx,
-                               eval_set=[(X_valid, y_validx)],
-                               eval_metric='rmse',
-                               verbose=False,
-                               early_stopping_rounds=20
-                               )
-                modelx.booster_.save_model(f'LightGBM_models/{n_files}modelx.txt')
-            else:
-                modelx = lgb.Booster(model_file=f'LightGBM_models/{n_files}modelx.txt')
+        # Make predictions on validation data and compare to ground truth and add to log file
+        oof_x = modelx.predict(X_valid)
+        oof_y = modely.predict(X_valid)
+        oof_f = modelf.predict(X_valid).astype(int)
 
-            if new_y:
-                new_y = True
-                modely = lgb.LGBMRegressor(**lgb_params)
-                with timer("fit Y"):
-                    modely.fit(X_train, y_trainy,
-                               eval_set=[(X_valid, y_validy)],
-                               eval_metric='rmse',
-                               verbose=False,
-                               early_stopping_rounds=20
-                               )
-                modely.booster_.save_model(f'LightGBM_models/{n_files}modely.txt')
-            else:
-                modely = lgb.Booster(model_file=f'LightGBM_models/{n_files}modely.txt')
-
-            if new_f:
-                new_f = True
-                modelf = lgb.LGBMClassifier(**lgb_f_params)
-                with timer("fit F"):
-                    modelf.fit(X_train, y_trainf,
-                               eval_set=[(X_valid, y_validf)],
-                               eval_metric='multi_logloss',
-                               verbose=False,
-                               early_stopping_rounds=20
-                               )
-                joblib.dump(modelf, f'LightGBM_models/{n_files}modelf.txt')
-            else:
-                modelf = joblib.load(f'LightGBM_models/{n_files}modelf.txt')
-                
-            # Make predictions on validation data and compare to ground truth and add to log file
-            oof_x[val_idx] = modelx.predict(X_valid)
-            oof_y[val_idx] = modely.predict(X_valid)
-            oof_f[val_idx] = modelf.predict(X_valid).astype(int)
-
-            score = comp_metric(oof_x[val_idx], oof_y[val_idx], oof_f[val_idx],
-                                y_validx.to_numpy(), y_validy.to_numpy(), y_validf.to_numpy())
-            print(f"fold {fold}: mean position error {score}")
-            score_df = score_log(score_df, n_files, os.path.basename(file), data.shape, fold, SEED, score)
+        score = comp_metric(oof_x, oof_y, oof_f,
+                            y_validx.to_numpy(), y_validy.to_numpy(), y_validf.to_numpy())
+        score_df = score_log(score_df, n_files, os.path.basename(site), test_data.shape, 1, SEED, score)
 
         # Calculate the MPE for the enitre site and add info to log file
         print("*+"*40)
-        print(f"file #{n_files}, shape={data.shape}, name={os.path.basename(file)}")
+        print(f"file #{n_files}, shape={test_data.shape}, name={os.path.basename(site)}")
         score = comp_metric(oof_x, oof_y, oof_f,
-                            data.iloc[:, -3].to_numpy(), data.iloc[:, -2].to_numpy(), data.iloc[:, -1].to_numpy())
+                            test_data.iloc[:, -3].to_numpy(), test_data.iloc[:, -2].to_numpy(), test_data.iloc[:, -1].to_numpy())
         oof.append(score)
         print(f"mean position error {score}")
         print("*+"*40)
-        score_df = score_log(score_df, n_files, os.path.basename(file), data.shape, 999, SEED, score)
+        score_df = score_log(score_df, n_files, os.path.basename(site), test_data.shape, 999, SEED, score)
+        n_files += 1
 
 def predict():
 
@@ -267,6 +250,20 @@ def predict():
         print(f"Finished site {n_files}")
 
     return predictions
+
+def predict_one(rssi, index):
+
+	modelx = lgb.Booster(model_file=f'LightGBM_models/{index}modelx.txt')
+	modely = lgb.Booster(model_file=f'LightGBM_models/{index}modely.txt')
+	modelf = joblib.load(f'LightGBM_models/{index}modelf.txt')
+
+	rssi = np.array(rssi).reshape((1,-1))
+	preds_x = modelx.predict(rssi)
+	preds_y = modely.predict(rssi)
+	preds_f = modelf.predict(rssi).astype(int)
+
+	return preds_x, preds_y, preds_f
+
 
 if __name__ == '__main__':
     
