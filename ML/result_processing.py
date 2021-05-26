@@ -19,8 +19,6 @@ def get_mean_site(path_results,site, value):
     if (len(y_results) == 0):
         return 10000000,1000000, True
     hists = [unpickle_hist(path_results,x) for x in y_results]
-    epochs = max([len(x["loss"]) for x in hists])
-    #l, vl = get_data(hists, epochs-1)
     l,vl = get_mean_loss(hists)
     return l, vl, False
 
@@ -79,7 +77,7 @@ def get_best_loss(hists):
 def get_best_site(path_results, site, value):
     files = [x for x in os.listdir(path_results) if x.split("_")[0] == site]
     y_results = [i for i in files if i.split("_")[3].split(".")[0] == value]
-    less_sites = False
+    
     if (len(y_results) == 0):
         return 10000000,1000000, True
     
@@ -91,7 +89,7 @@ def get_best_site(path_results, site, value):
 def get_worst_site(path_results, site, value):
     files = [x for x in os.listdir(path_results) if x.split("_")[0] == site]
     y_results = [i for i in files if i.split("_")[3].split(".")[0] == value]
-    less_sites = False
+    
     if (len(y_results) == 0):
         return 10000000,1000000, True
     
@@ -108,7 +106,6 @@ def get_mean_k(path_results, option="mean", value="floors"):
     for site in sites:
         if(option == "mean"):
             l,vl, no_data = get_mean_site(path_results, site, value)
-            #print("Training loss for site {}: {}\nValidation Loss : {}".format(site,l,vl))
         elif(option == "best"):
             l,vl, no_data = get_best_site(path_results, site, value)
         elif(option=="worst"):
